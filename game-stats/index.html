@@ -104,7 +104,7 @@
     </section>
     <div class="layout">
       <section class="panel"><h2>Результаты по видам игр</h2><div id="gamesBreakdown" class="stack"></div></section>
-      <section class="panel"><h2>Таймеры и контроль времени</h2><p class="hint" style="margin-top:-6px">Всего партий и победы каждого игрока указаны словами. Полоса показывает соотношение результатов.</p><div id="clocksBreakdown" class="stack clock-results"></div></section>
+      <section class="panel"><h2>Таймеры и контроль времени</h2><p class="hint" style="margin-top:-6px">Результаты по выбранным фильтрам. «Шашки без таймера» входят в «Все игры без таймера» — эти две строки не нужно складывать. Остальные режимы относятся к шашкам.</p><div id="clocksBreakdown" class="stack clock-results"></div></section>
     </div>
     <section class="panel" style="margin-bottom:20px"><h2>Динамика по датам</h2><p class="hint" style="margin-top:-6px">Свежие даты сверху. Наведи на строку для всплывающей подсказки или нажми, чтобы закрепить её и прокрутить при необходимости. Порядок партий внутри дня неизвестен.</p><div id="timeline"></div></section>
     <section class="panel"><div class="summary-line"><h2 style="margin:0">Записи партий</h2><span class="muted" id="tableCount">—</span></div><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Игра / вариант</th><th>Победитель</th><th>Таймер</th><th>Сторона</th><th>Кол-во</th><th>Исходная запись</th></tr></thead><tbody id="gamesTable"></tbody></table></div></section>
@@ -202,17 +202,29 @@
     function resultSummary(t,l,p,d){return '<span class="numbers"><span class="result-stat">Всего: <strong>'+t+'</strong></span><span class="result-stat color-lekha">Лёха: '+l+'</span><span class="result-stat color-papa">Папа: '+p+'</span>'+(d?'<span class="result-stat">Ничьи: '+d+'</span>':'')+'</span>';}
     function renderGames(a){const grouped=new Map();for(const r of a){const key=r.game+'|'+r.variant+'|'+r.checkers_type;if(!grouped.has(key))grouped.set(key,{r,rows:[]});grouped.get(key).rows.push(r);}const items=[...grouped.values()].sort((x,y)=>sum(y.rows)-sum(x.rows));$('gamesBreakdown').innerHTML=items.map(({r,rows:rs})=>{const t=sum(rs),l=sum(rs,'lekha'),p=sum(rs,'papa'),d=sum(rs,'draw');return '<div><div class="item-head"><span class="name">'+esc(gameLabel(r))+'</span>'+resultSummary(t,l,p,d)+'</div><div class="mini-track">'+portions(l,p,d,t)+'</div></div>';}).join('')||'<div class="blank">Нет партий для выбранных фильтров.</div>';}
     function renderClocks(a){
-      const grouped=new Map();
+      const fresh=()=>({lekha:0,papa:0,draw:0});
+      const add=(bucket,r)=>{bucket[r.winner]+=r.count;};
+      const total=bucket=>bucket.lekha+bucket.papa+bucket.draw;
+      const allNoTimer=fresh(), checkersNoTimer=fresh(), timed=new Map();
       for(const r of a){
         if(!r.clock_type)continue;
-        const key=fmtClock(r);
-        if(!grouped.has(key))grouped.set(key,{lekha:0,papa:0,draw:0});
-        grouped.get(key)[r.winner]+=r.count;
+        if(r.clock_type==='nt'){
+          add(allNoTimer,r);
+          if(r.game==='checkers')add(checkersNoTimer,r);
+        }else{
+          // Timed modes currently belong to checkers under the documented source rules.
+          const name='Шашки · '+fmtClock(r);
+          if(!timed.has(name))timed.set(name,fresh());
+          add(timed.get(name),r);
+        }
       }
-      const items=[...grouped].sort((a,b)=>
-        (b[1].lekha+b[1].papa+b[1].draw)-(a[1].lekha+a[1].papa+a[1].draw));
+      // These first two categories intentionally overlap: the second is a subset of the first.
+      const items=[];
+      if(total(allNoTimer))items.push(['Все игры без таймера',allNoTimer]);
+      if(total(checkersNoTimer))items.push(['Шашки без таймера',checkersNoTimer]);
+      items.push(...[...timed].sort((a,b)=>total(b[1])-total(a[1])));
       $('clocksBreakdown').innerHTML=items.map(([name,x])=>{
-        const t=x.lekha+x.papa+x.draw;
+        const t=total(x);
         return '<div><div class="item-head"><span class="name">'+esc(name)+'</span>'+
           resultSummary(t,x.lekha,x.papa,x.draw)+'</div>'+
           '<div class="mini-track" role="img" aria-label="'+esc(name)+': всего '+t+', победы Лёхи '+x.lekha+', папы '+x.papa+', ничьи '+x.draw+'">'+
