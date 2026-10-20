@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Рубилово — статистика игр</title>
+  <style>
+    :root { --bg:#0c121b; --surface:#141e2b; --surface2:#1b2939; --line:#2a3a4a; --text:#f3f6fa; --muted:#a7b6c5; --lekha:#40c5b3; --papa:#f2b35b; --draw:#8290a3; --focus:#8ddfd3; }
+    * { box-sizing:border-box; }
+    html { font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif; }
+    body { margin:0; color:var(--text); background:radial-gradient(circle at 85% -12%,#21364b 0,transparent 37%),var(--bg); min-height:100vh; }
+    .wrap { max-width:1190px; padding:38px 22px 70px; margin:auto; }
+    header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:20px; margin-bottom:26px; }
+    .eyebrow { font-size:.7rem; text-transform:uppercase; font-weight:800; letter-spacing:.19em; color:var(--lekha); }
+    h1 { font-size:clamp(2.2rem,5.5vw,4rem); letter-spacing:-.06em; line-height:1.05; margin:9px 0; }
+    h2 { margin:0 0 17px; font-size:1.16rem; letter-spacing:-.025em; }
+    .sub,.hint { color:var(--muted); font-size:.88rem; line-height:1.6; }
+    .sub { margin:0; }
+    button,.file-button,select,input { font:inherit; }
+    button,.file-button { display:inline-flex; align-items:center; gap:9px; justify-content:center; cursor:pointer; padding:11px 16px; border-radius:11px; border:1px solid var(--line); background:var(--surface2); color:var(--text); font-weight:700; font-size:.88rem; }
+    button:hover,.file-button:hover { border-color:var(--lekha); }
+    :focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+    .file-button { background:var(--lekha); color:#08251f; border-color:var(--lekha); }
+    .file-button:hover { background:#66dac9; }
+    .file-button input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+    .tools { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+    .state { border:1px solid var(--line); background:var(--surface); border-radius:13px; color:var(--muted); padding:13px 16px; margin-bottom:22px; line-height:1.5; font-size:.85rem; }
+    .state.error { border-color:#c46d73; color:#ffd9da; }
+    .panel { background:linear-gradient(155deg,#172434,#121c29); border:1px solid var(--line); border-radius:17px; padding:22px; min-width:0; }
+    .filters { display:grid; grid-template-columns:repeat(4,minmax(130px,1fr)); gap:14px; margin-bottom:20px; }
+    .filter label { display:block; color:var(--muted); font-size:.73rem; font-weight:750; margin-bottom:7px; }
+    select,input[type=date] { color:var(--text); background:#101a26; width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:9px; min-height:42px; }
+    select:disabled,input:disabled { opacity:.45; }
+    .filter .date-wrap { display:flex; gap:8px; }
+    .filter .date-wrap input { min-width:0; }
+    .filter.actions { display:flex; align-items:flex-end; }
+    .filter.actions button { width:100%; min-height:42px; }
+    .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:20px; }
+    .kpi span { font-size:.75rem; color:var(--muted); font-weight:750; }
+    .kpi strong { display:block; font-size:clamp(1.8rem,4vw,2.6rem); letter-spacing:-.05em; margin:8px 0 3px; font-variant-numeric:tabular-nums; }
+    .kpi small { font-size:.76rem; color:var(--muted); }
+    .color-lekha { color:var(--lekha); } .color-papa { color:var(--papa); }
+    .summary { margin-bottom:20px; }
+    .summary-line { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; font-size:.85rem; margin-bottom:12px; }
+    .split-track { height:17px; border-radius:99px; display:flex; overflow:hidden; background:var(--surface2); }
+    .split-track > span { height:100%; } .split-track .l { background:var(--lekha); } .split-track .p { background:var(--papa); } .split-track .d { background:var(--draw); }
+    .legend { display:flex; flex-wrap:wrap; gap:15px; margin-top:13px; color:var(--muted); font-size:.77rem; }
+    .dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
+    .layout { display:grid; grid-template-columns:1.15fr .85fr; gap:18px; margin-bottom:20px; }
+    .stack { display:grid; gap:15px; }
+    .item-head { display:flex; align-items:center; justify-content:space-between; font-size:.82rem; gap:12px; margin-bottom:7px; }
+    .item-head .name { font-weight:700; } .item-head .numbers { color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .mini-track { height:10px; overflow:hidden; display:flex; background:#263647; border-radius:20px; }
+    .mini-track .l { background:var(--lekha); } .mini-track .p { background:var(--papa); } .mini-track .d { background:var(--draw); }
+    .clock-list { display:grid; gap:11px; }
+    .clock-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; font-size:.82rem; }
+    .clock-row .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .clock-row .value { color:var(--muted); font-variant-numeric:tabular-nums; }
+    .meter { height:6px; background:#2a394b; border-radius:20px; margin-top:7px; overflow:hidden; } .meter span { display:block; background:#668da8; height:100%; border-radius:20px; }
+    .date-row { display:grid; grid-template-columns:93px minmax(0,1fr) 84px; gap:12px; align-items:center; margin:13px 0; }
+    .date-name { font-size:.78rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .date-track { height:17px; display:flex; border-radius:5px; overflow:hidden; background:var(--surface2); }
+    .date-track span { height:100%; } .date-track .l { background:var(--lekha); } .date-track .p { background:var(--papa); } .date-track .d { background:var(--draw); }
+    .date-num { font-size:.75rem; color:var(--muted); text-align:right; font-variant-numeric:tabular-nums; }
+    .table-wrap { overflow:auto; border-radius:11px; border:1px solid var(--line); }
+    table { width:100%; border-collapse:collapse; text-align:left; font-size:.82rem; }
+    th { background:#1c2b3b; font-size:.7rem; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); position:sticky; top:0; white-space:nowrap; }
+    th,td { padding:11px 13px; border-bottom:1px solid var(--line); vertical-align:top; }
+    tbody tr:last-child td { border-bottom:0; }
+    tbody tr:hover { background:#1b2a39; }
+    .tag { display:inline-block; padding:3px 7px; border-radius:6px; color:#08251f; background:var(--lekha); font-size:.72rem; font-weight:750; }
+    .tag.papa { background:var(--papa); color:#34230c; } .tag.draw { background:var(--draw); color:#111e2e; }
+    .flag { color:var(--papa); font-size:.75rem; white-space:nowrap; }
+    .muted { color:var(--muted); } .nobr { white-space:nowrap; }
+    .blank { color:var(--muted); padding:20px 0; font-size:.85rem; }
+    .footer { margin-top:24px; color:var(--muted); font-size:.78rem; line-height:1.6; }
+    @media(max-width:850px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .layout { grid-template-columns:1fr; } }
+    @media(max-width:520px) { .wrap { padding:23px 13px 44px; } .panel { padding:16px; } .filters { gap:10px; } .kpis { gap:10px; } .date-row { grid-template-columns:72px minmax(0,1fr) 61px; gap:7px; } .date-num { font-size:.67rem; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div><div class="eyebrow">Personal Lab · Game stats</div><h1>Рубилово<span style="color:var(--lekha)">.</span></h1><p class="sub">Папа vs Лёха. Партии, таймеры, варианты игр — всё в одном месте.</p></div>
+      <div class="tools"><label class="file-button" for="csvFile">↥ Загрузить CSV<input id="csvFile" type="file" accept=".csv,text/csv"></label><button id="retryButton" type="button">↻ Обновить</button></div>
+    </header>
+    <div id="status" role="status" class="state">Загрузка данных…</div>
+    <section class="panel filters" aria-label="Фильтры">
+      <div class="filter"><label for="gameFilter">Игра</label><select id="gameFilter"><option value="all">Все игры</option></select></div>
+      <div class="filter"><label for="variantFilter">Вариант</label><select id="variantFilter"><option value="all">Все варианты</option></select></div>
+      <div class="filter"><label for="winnerFilter">Победитель</label><select id="winnerFilter"><option value="all">Все результаты</option><option value="lekha">Лёха</option><option value="papa">Папа</option><option value="draw">Ничья</option></select></div>
+      <div class="filter"><label for="clockFilter">Система часов</label><select id="clockFilter"><option value="all">Все системы</option><option value="bd">Bronstein</option><option value="sdel">Simple Delay</option><option value="hg">Hourglass</option><option value="sd">Sudden Death</option><option value="unknown">Не указана</option></select></div>
+      <div class="filter"><label for="dateFrom">С даты</label><input type="date" id="dateFrom"></div>
+      <div class="filter"><label for="dateTo">По дату</label><input type="date" id="dateTo"></div>
+      <div class="filter"><label for="flagFilter">Пометка «п»</label><select id="flagFilter"><option value="all">Все записи</option><option value="true">С пометкой</option><option value="false">Без пометки</option></select></div>
+      <div class="filter actions"><button id="resetButton" type="button">Сбросить фильтры</button></div>
+    </section>
+    <section class="kpis" aria-label="Основные показатели">
+      <div class="panel kpi"><span>Всего партий</span><strong id="total">—</strong><small id="groups">Исторические записи</small></div>
+      <div class="panel kpi"><span>Победы Лёхи</span><strong id="lekhaWins" class="color-lekha">—</strong><small id="lekhaRate">—</small></div>
+      <div class="panel kpi"><span>Победы папы</span><strong id="papaWins" class="color-papa">—</strong><small id="papaRate">—</small></div>
+      <div class="panel kpi"><span>Ничьи</span><strong id="draws">—</strong><small id="period">—</small></div>
+    </section>
+    <section class="panel summary"><div class="summary-line"><b>Баланс результатов</b><span class="muted" id="lead">—</span></div><div id="overallTrack" class="split-track" aria-label="Распределение результатов"></div><div class="legend"><span><i class="dot" style="background:var(--lekha)"></i>Лёха</span><span><i class="dot" style="background:var(--papa)"></i>Папа</span><span><i class="dot" style="background:var(--draw)"></i>Ничьи</span></div></section>
+    <div class="layout">
+      <section class="panel"><h2>Результаты по видам игр</h2><div id="gamesBreakdown" class="stack"></div></section>
+      <section class="panel"><h2>Таймеры и контроль времени</h2><div id="clocksBreakdown" class="clock-list"></div></section>
+    </div>
+    <section class="panel" style="margin-bottom:20px"><h2>Динамика по датам</h2><p class="hint" style="margin-top:-6px">Полосы показывают число побед в каждый день. Исторические множители учтены; порядок партий внутри дня неизвестен.</p><div id="timeline"></div></section>
+    <section class="panel"><div class="summary-line"><h2 style="margin:0">Записи партий</h2><span class="muted" id="tableCount">—</span></div><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Игра / вариант</th><th>Победитель</th><th>Таймер</th><th>Сторона</th><th>Кол-во</th><th>Исходная запись</th></tr></thead><tbody id="gamesTable"></tbody></table></div></section>
+    <p class="footer">Данные берутся только из <code>games.csv</code>; результаты не зашиты в HTML. При запуске через HTTP(S) файл загружается автоматически, при открытии локального <code>index.html</code> выбери CSV кнопкой сверху. HTML ничего не отправляет на сервер и не изменяет исходный файл.</p>
+  </main>
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const REQUIRED = ['id','date','game','variant','winner','clock_type','base_seconds','delay_seconds','side_mark','papa_drunk','count','source_entry','notes'];
+    const GAME_NAMES = {checkers:'Шашки',chess:'Шахматы',quoridouble:'Quoridouble',hexagon:'Hexagon'};
+    const VARIANT_NAMES = {international:'Международные',russian:'Русские',three_check:'Три шаха',standard:'Классические',default:'Основной'};
+    const CLOCK_NAMES = {bd:'Bronstein',sdel:'Simple Delay',hg:'Hourglass',sd:'Sudden Death'};
+    const ALLOWED_VARIANTS = {checkers:['international','russian'],chess:['three_check','standard'],quoridouble:['default'],hexagon:['default']};
+    let rows = [], fileLabel = '', loadMode = 'none';
+    function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function parseCSV(input) {
+      const s = input.replace(/^\uFEFF/,''); let data=[], record=[], value='', quoted=false;
+      for (let i=0;i<s.length;i++) {
+        const c=s[i];
+        if (quoted) { if(c==='"' && s[i+1]==='"') {value+='"';i++;} else if(c==='"') quoted=false; else value+=c; }
+        else if(c==='"') { if(value!=='') throw Error('Некорректная кавычка в CSV'); quoted=true; }
+        else if(c===',') {record.push(value);value='';}
+        else if(c==='\n' || c==='\r') { if(c==='\r' && s[i+1]==='\n')i++;record.push(value);if(record.some(x=>x!==''))data.push(record);record=[];value=''; }
+        else value+=c;
+      }
+      if(quoted)throw Error('Незакрытая кавычка в CSV');
+      record.push(value);if(record.some(x=>x!==''))data.push(record);
+      if(!data.length)throw Error('CSV пуст');
+      const header=data.shift().map(x=>x.trim());
+      if(new Set(header).size!==header.length)throw Error('Повторяющиеся названия столбцов');
+      for(const key of REQUIRED)if(!header.includes(key))throw Error('Нет обязательного столбца: '+key);
+      return data.map((cells,i)=>{if(cells.length!==header.length)throw Error('Строка '+(i+2)+': ожидалось '+header.length+' столбцов, получено '+cells.length);return Object.fromEntries(header.map((h,j)=>[h,cells[j].trim()]));});
+    }
+    function validDate(s) { if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T00:00:00Z');return !isNaN(d) && d.toISOString().slice(0,10)===s; }
+    function validate(data) {
+      const ids=new Set();
+      for(let i=0;i<data.length;i++){
+        const r=data[i], at='Строка '+(i+2)+': ';
+        if(!r.id || ids.has(r.id))throw Error(at+'id пуст или повторяется');ids.add(r.id);
+        if(!validDate(r.date))throw Error(at+'некорректная дата');
+        if(!ALLOWED_VARIANTS[r.game]?.includes(r.variant))throw Error(at+'неизвестная игра / вариант');
+        if(!['lekha','papa','draw'].includes(r.winner))throw Error(at+'неизвестный победитель');
+        if(r.clock_type && !CLOCK_NAMES[r.clock_type])throw Error(at+'неизвестный тип часов');
+        if(!['','w','b','wb'].includes(r.side_mark))throw Error(at+'неизвестная отметка стороны');
+        if(!['true','false'].includes(r.papa_drunk))throw Error(at+'papa_drunk должен быть true или false');
+        if(!/^[1-9]\d*$/.test(r.count) || !Number.isSafeInteger(Number(r.count)))throw Error(at+'count должен быть целым положительным числом');
+        r.count=Number(r.count);
+        for(const k of ['base_seconds','delay_seconds']) if(r[k]!=='' && (!/^\d+$/.test(r[k]) || !Number.isSafeInteger(Number(r[k]))))throw Error(at+k+' должен быть целым числом секунд');
+        if(!r.clock_type && (r.base_seconds!=='' || r.delay_seconds!==''))throw Error(at+'время задано без типа часов');
+        if(r.clock_type && (!r.base_seconds || Number(r.base_seconds)<1))throw Error(at+'для таймера нужно положительное base_seconds');
+        if(['bd','sdel'].includes(r.clock_type) && r.delay_seconds==='')throw Error(at+'нужно delay_seconds для delay-таймера');
+        if(['hg','sd'].includes(r.clock_type) && r.delay_seconds!=='')throw Error(at+'для Hourglass / Sudden Death delay_seconds оставляют пустым');
+        if(r.base_seconds!=='')r.base_seconds=Number(r.base_seconds);
+        if(r.delay_seconds!=='')r.delay_seconds=Number(r.delay_seconds);
+      }
+      return data;
+    }
+    const sum=(items,who)=>items.reduce((s,r)=>s+(who && r.winner!==who?0:r.count),0);
+    const percent=(v,total)=>total?Math.round(v*1000/total)/10:0;
+    const dateLabel=s=>s.slice(8,10)+'.'+s.slice(5,7)+'.'+s.slice(0,4);
+    const fmtClock=r=>!r.clock_type?'Не указан':CLOCK_NAMES[r.clock_type]+' · '+Math.floor(r.base_seconds/60)+':'+String(r.base_seconds%60).padStart(2,'0')+(['bd','sdel'].includes(r.clock_type)?' + '+r.delay_seconds+' с':'');
+    const gameLabel=r=>GAME_NAMES[r.game]+' · '+VARIANT_NAMES[r.variant];
+    const winnerLabel=v=>({lekha:'Лёха',papa:'Папа',draw:'Ничья'})[v];
+    function setStatus(msg,error=false){$('status').textContent=msg;$('status').className='state'+(error?' error':'');}
+    function loadCSV(text,name,mode){try{const next=validate(parseCSV(text));rows=next;fileLabel=name;loadMode=mode;refreshGameOptions();refreshVariantOptions();render();setStatus('Загружен '+name+' · '+rows.length+' строк / '+sum(rows)+' партий · '+(mode==='auto'?'автоматическая загрузка':'выбранный файл'));}catch(err){setStatus('Не удалось прочитать CSV: '+err.message,true);}}
+    function refreshGameOptions(){const current=$('gameFilter').value;const games=[...new Set(rows.map(r=>r.game))];$('gameFilter').innerHTML='<option value="all">Все игры</option>'+games.map(g=>'<option value="'+esc(g)+'">'+esc(GAME_NAMES[g])+'</option>').join('');$('gameFilter').value=games.includes(current)?current:'all';}
+    function refreshVariantOptions(){const current=$('variantFilter').value;const game=$('gameFilter').value;const variants=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.variant))];$('variantFilter').innerHTML='<option value="all">Все варианты</option>'+variants.map(v=>'<option value="'+esc(v)+'">'+esc(VARIANT_NAMES[v])+'</option>').join('');$('variantFilter').value=variants.includes(current)?current:'all';}
+    function selected(){return rows.filter(r=>($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||r.clock_type===$('clockFilter').value||($('clockFilter').value==='unknown'&&!r.clock_type))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
+    function portions(l,p,d,total){if(!total)return '';return '<span class="l" style="width:'+percent(l,total)+'%"></span><span class="p" style="width:'+percent(p,total)+'%"></span><span class="d" style="width:'+percent(d,total)+'%"></span>';}
+    function render(){const a=selected(),total=sum(a),l=sum(a,'lekha'),p=sum(a,'papa'),d=sum(a,'draw');$('total').textContent=total;$('groups').textContent=a.length+' строк источника';$('lekhaWins').textContent=l;$('papaWins').textContent=p;$('draws').textContent=d;$('lekhaRate').textContent=percent(l,total)+'% от всех партий';$('papaRate').textContent=percent(p,total)+'% от всех партий';const dates=a.map(x=>x.date).sort();$('period').textContent=dates.length?dateLabel(dates[0])+' — '+dateLabel(dates.at(-1)):'Нет данных';$('lead').textContent=total?(l===p?'По победам равенство':(l>p?'Лёха':'Папа')+' впереди на '+Math.abs(l-p)):'Нет партий';$('overallTrack').innerHTML=portions(l,p,d,total);renderGames(a);renderClocks(a);renderTimeline(a);renderTable(a);}
+    function renderGames(a){const grouped=new Map();for(const r of a){const key=r.game+'|'+r.variant;if(!grouped.has(key))grouped.set(key,{r,rows:[]});grouped.get(key).rows.push(r);}const items=[...grouped.values()].sort((x,y)=>sum(y.rows)-sum(x.rows));$('gamesBreakdown').innerHTML=items.map(({r,rows:rs})=>{const t=sum(rs),l=sum(rs,'lekha'),p=sum(rs,'papa'),d=sum(rs,'draw');return '<div><div class="item-head"><span class="name">'+esc(gameLabel(r))+'</span><span class="numbers">'+t+' · '+l+' / '+p+(d?' / '+d:'')+'</span></div><div class="mini-track">'+portions(l,p,d,t)+'</div></div>';}).join('')||'<div class="blank">Нет партий для выбранных фильтров.</div>';}
+    function renderClocks(a){const grouped=new Map();for(const r of a){const key=fmtClock(r);grouped.set(key,(grouped.get(key)||0)+r.count);}const items=[...grouped].sort((a,b)=>b[1]-a[1]);const max=Math.max(...items.map(x=>x[1]),1);$('clocksBreakdown').innerHTML=items.map(([name,n])=>'<div><div class="clock-row"><span class="name" title="'+esc(name)+'">'+esc(name)+'</span><span class="value">'+n+'</span></div><div class="meter"><span style="width:'+(n/max*100)+'%"></span></div></div>').join('')||'<div class="blank">Нет данных.</div>';}
+    function renderTimeline(a){const days=new Map();for(const r of a){if(!days.has(r.date))days.set(r.date,{lekha:0,papa:0,draw:0});days.get(r.date)[r.winner]+=r.count;}const items=[...days].sort(([x],[y])=>x.localeCompare(y));const max=Math.max(...items.map(([,x])=>x.lekha+x.papa+x.draw),1);$('timeline').innerHTML=items.map(([date,x])=>{const n=x.lekha+x.papa+x.draw;return '<div class="date-row"><span class="date-name">'+esc(dateLabel(date).slice(0,5))+'</span><div class="date-track" title="'+esc(date)+' · Лёха: '+x.lekha+'; Папа: '+x.papa+'; Ничьи: '+x.draw+'">'+portions(x.lekha,x.papa,x.draw,max)+'</div><span class="date-num">'+x.lekha+' / '+x.papa+(x.draw?' / '+x.draw:'')+'</span></div>';}).join('')||'<div class="blank">Нет данных.</div>';}
+    function renderTable(a){const sorted=[...a].sort((x,y)=>y.date.localeCompare(x.date)||y.id.localeCompare(x.id));$('tableCount').textContent=sorted.length+' строк / '+sum(a)+' партий';$('gamesTable').innerHTML=sorted.map(r=>'<tr><td class="nobr">'+esc(dateLabel(r.date))+'</td><td>'+esc(gameLabel(r))+'</td><td><span class="tag '+esc(r.winner==='lekha'?'':r.winner==='papa'?'papa':'draw')+'">'+esc(winnerLabel(r.winner))+'</span>'+(r.papa_drunk==='true'?'<div class="flag" title="В источнике есть пометка п">Пометка «п»</div>':'')+'</td><td class="nobr">'+esc(fmtClock(r))+'</td><td>'+esc(r.side_mark||'—')+'</td><td>'+r.count+'</td><td class="nobr muted" title="'+esc(r.notes||'')+'">'+esc(r.source_entry||'—')+'</td></tr>').join('')||'<tr><td colspan="7" class="blank">Нет совпадений. Сбросьте фильтры.</td></tr>';}
+    for(const id of ['variantFilter','winnerFilter','clockFilter','flagFilter','dateFrom','dateTo'])$(id).addEventListener('change',render);
+    $('gameFilter').addEventListener('change',()=>{refreshVariantOptions();render();});
+    $('resetButton').addEventListener('click',()=>{for(const id of ['gameFilter','winnerFilter','clockFilter','flagFilter'])$(id).value='all';refreshVariantOptions();$('variantFilter').value='all';$('dateFrom').value='';$('dateTo').value='';render();});
+    $('csvFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;loadCSV(await f.text(),f.name,'manual');e.target.value='';});
+    async function autoLoad(){if(!/^https?:$/.test(location.protocol)){setStatus('Локальный файл: нажми «Загрузить CSV» и выбери games.csv из той же папки. Браузер не разрешает HTML автоматически читать соседние файлы.');return;}try{const response=await fetch('./games.csv',{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);loadCSV(await response.text(),'games.csv','auto');}catch(e){setStatus('Автозагрузка недоступна ('+e.message+'). Выбери games.csv кнопкой «Загрузить CSV».',true);}}
+    $('retryButton').addEventListener('click',()=>{if(loadMode==='auto')autoLoad();else if(/^https?:$/.test(location.protocol))autoLoad();else $('csvFile').click();});
+    autoLoad();
+  </script>
+</body>
+</html>

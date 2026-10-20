@@ -4,5 +4,9 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+
+		    "window.title": "💚 PUB-PERS-LAB | ${activeFolderMedium} | ${activeEditorShort}"
+
+	}
 }
