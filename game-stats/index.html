@@ -44,11 +44,11 @@
     .summary-line { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; font-size:.85rem; margin-bottom:12px; }
     .layout { display:grid; grid-template-columns:1.15fr .85fr; gap:18px; margin-bottom:20px; }
     .stack { display:grid; gap:15px; }
-    .item-head { display:flex; align-items:center; justify-content:space-between; font-size:.82rem; gap:12px; margin-bottom:7px; }
-    .item-head .name { font-weight:700; } .item-head .numbers { color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .item-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.82rem; gap:6px 12px; margin-bottom:7px; }
+    .item-head .name { font-weight:700; } .item-head .numbers { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:3px 10px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .item-head .numbers .result-stat { white-space:nowrap; } .item-head .numbers strong { color:var(--text); }
     .mini-track { height:10px; overflow:hidden; display:flex; background:#263647; border-radius:20px; }
     .mini-track .l { background:var(--lekha); } .mini-track .p { background:var(--papa); } .mini-track .d { background:var(--draw); }
-    .clock-results .item-head { flex-wrap:wrap; }
     button.date-row { display:grid; grid-template-columns:93px minmax(0,1fr) 84px; gap:12px; align-items:center; width:100%; padding:9px 8px; margin:4px 0 0; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--text); text-align:left; font:inherit; font-weight:400; cursor:pointer; }
     button.date-row:hover, button.date-row:focus-visible, .date-entry.is-active button.date-row { background:var(--surface2); border-color:var(--line); }
     .date-tooltip { position:fixed; z-index:1000; width:min(440px,calc(100vw - 24px)); max-height:min(75vh,520px); overflow-y:auto; overscroll-behavior:contain; padding:12px 15px; border:1px solid var(--line); border-left:3px solid var(--focus); border-radius:10px; background:#111f2e; box-shadow:0 14px 38px #0009; color:var(--text); font-size:.8rem; line-height:1.5; overflow-wrap:anywhere; pointer-events:none; }
@@ -104,7 +104,7 @@
     </section>
     <div class="layout">
       <section class="panel"><h2>Результаты по видам игр</h2><div id="gamesBreakdown" class="stack"></div></section>
-      <section class="panel"><h2>Таймеры и контроль времени</h2><p class="hint" style="margin-top:-6px">Всего партий · победы Лёхи / папы / ничьи. Полоса показывает соотношение результатов.</p><div id="clocksBreakdown" class="stack clock-results"></div></section>
+      <section class="panel"><h2>Таймеры и контроль времени</h2><p class="hint" style="margin-top:-6px">Всего партий и победы каждого игрока указаны словами. Полоса показывает соотношение результатов.</p><div id="clocksBreakdown" class="stack clock-results"></div></section>
     </div>
     <section class="panel" style="margin-bottom:20px"><h2>Динамика по датам</h2><p class="hint" style="margin-top:-6px">Свежие даты сверху. Наведи на строку для всплывающей подсказки или нажми, чтобы закрепить её и прокрутить при необходимости. Порядок партий внутри дня неизвестен.</p><div id="timeline"></div></section>
     <section class="panel"><div class="summary-line"><h2 style="margin:0">Записи партий</h2><span class="muted" id="tableCount">—</span></div><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Игра / вариант</th><th>Победитель</th><th>Таймер</th><th>Сторона</th><th>Кол-во</th><th>Исходная запись</th></tr></thead><tbody id="gamesTable"></tbody></table></div></section>
@@ -199,7 +199,8 @@
     function selected(){return rows.filter(r=>($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('checkersTypeFilter').value==='all'||r.checkers_type===$('checkersTypeFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||r.clock_type===$('clockFilter').value||($('clockFilter').value==='unknown'&&!r.clock_type))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&($('endingFilter').value==='all'||r.ending===$('endingFilter').value||($('endingFilter').value==='unspecified'&&!r.ending))&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
     function portions(l,p,d,total){if(!total)return '';return '<span class="l" style="width:'+percent(l,total)+'%"></span><span class="p" style="width:'+percent(p,total)+'%"></span><span class="d" style="width:'+percent(d,total)+'%"></span>';}
     function render(){const a=selected(),total=sum(a),l=sum(a,'lekha'),p=sum(a,'papa'),d=sum(a,'draw');$('total').textContent=total;$('groups').textContent=a.length+' строк источника';$('lekhaWins').textContent=l;$('papaWins').textContent=p;$('draws').textContent=d;$('lekhaRate').textContent=percent(l,total)+'% от всех партий';$('papaRate').textContent=percent(p,total)+'% от всех партий';const dates=a.map(x=>x.date).sort();$('period').textContent=dates.length?dateLabel(dates[0])+' — '+dateLabel(dates.at(-1)):'Нет данных';renderGames(a);renderClocks(a);renderTimeline(a);renderTable(a);}
-    function renderGames(a){const grouped=new Map();for(const r of a){const key=r.game+'|'+r.variant+'|'+r.checkers_type;if(!grouped.has(key))grouped.set(key,{r,rows:[]});grouped.get(key).rows.push(r);}const items=[...grouped.values()].sort((x,y)=>sum(y.rows)-sum(x.rows));$('gamesBreakdown').innerHTML=items.map(({r,rows:rs})=>{const t=sum(rs),l=sum(rs,'lekha'),p=sum(rs,'papa'),d=sum(rs,'draw');return '<div><div class="item-head"><span class="name">'+esc(gameLabel(r))+'</span><span class="numbers">'+t+' · '+l+' / '+p+(d?' / '+d:'')+'</span></div><div class="mini-track">'+portions(l,p,d,t)+'</div></div>';}).join('')||'<div class="blank">Нет партий для выбранных фильтров.</div>';}
+    function resultSummary(t,l,p,d){return '<span class="numbers"><span class="result-stat">Всего: <strong>'+t+'</strong></span><span class="result-stat color-lekha">Лёха: '+l+'</span><span class="result-stat color-papa">Папа: '+p+'</span>'+(d?'<span class="result-stat">Ничьи: '+d+'</span>':'')+'</span>';}
+    function renderGames(a){const grouped=new Map();for(const r of a){const key=r.game+'|'+r.variant+'|'+r.checkers_type;if(!grouped.has(key))grouped.set(key,{r,rows:[]});grouped.get(key).rows.push(r);}const items=[...grouped.values()].sort((x,y)=>sum(y.rows)-sum(x.rows));$('gamesBreakdown').innerHTML=items.map(({r,rows:rs})=>{const t=sum(rs),l=sum(rs,'lekha'),p=sum(rs,'papa'),d=sum(rs,'draw');return '<div><div class="item-head"><span class="name">'+esc(gameLabel(r))+'</span>'+resultSummary(t,l,p,d)+'</div><div class="mini-track">'+portions(l,p,d,t)+'</div></div>';}).join('')||'<div class="blank">Нет партий для выбранных фильтров.</div>';}
     function renderClocks(a){
       const grouped=new Map();
       for(const r of a){
@@ -213,7 +214,7 @@
       $('clocksBreakdown').innerHTML=items.map(([name,x])=>{
         const t=x.lekha+x.papa+x.draw;
         return '<div><div class="item-head"><span class="name">'+esc(name)+'</span>'+
-          '<span class="numbers">'+t+' · '+x.lekha+' / '+x.papa+(x.draw?' / '+x.draw:'')+'</span></div>'+
+          resultSummary(t,x.lekha,x.papa,x.draw)+'</div>'+
           '<div class="mini-track" role="img" aria-label="'+esc(name)+': всего '+t+', победы Лёхи '+x.lekha+', папы '+x.papa+', ничьи '+x.draw+'">'+
           portions(x.lekha,x.papa,x.draw,t)+'</div></div>';
       }).join('')||'<div class="blank">Нет данных о режиме таймера для выбранных фильтров.</div>';
