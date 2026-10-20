@@ -12,14 +12,15 @@ HTML_PATH = ROOT / 'game-stats' / 'index.html'
 FIELDS = [
     'id', 'date', 'game', 'variant', 'winner', 'clock_type', 'base_seconds',
     'delay_seconds', 'side_mark', 'papa_drunk', 'count', 'source_entry', 'notes',
+    'checkers_type', 'ending',
 ]
 VARIANTS = {
-    'checkers': {'international', 'russian'},
+    'checkers': {'breakthrough', 'standard'},
     'chess': {'three_check', 'standard'},
     'quoridouble': {'default'},
     'hexagon': {'default'},
 }
-CLOCKS = {'bd', 'sdel', 'hg', 'sd'}
+CLOCKS = {'bd', 'sdel', 'hg', 'sd', 'nt'}
 
 
 def check(condition, line, message):
@@ -57,6 +58,9 @@ def validate():
         except ValueError as exc:
             raise ValueError(f'CSV line {line}: invalid calendar date') from exc
         check(variant in VARIANTS.get(game, set()), line, 'unknown game or variant')
+        check(row['checkers_type'] in ({'international', 'russian'} if game == 'checkers' else {''}),
+              line, 'invalid checkers type')
+        check(row['ending'] in {'', 'time'}, line, 'invalid ending marker')
         check(winner in totals, line, 'unknown winner')
         check(row['side_mark'] in {'', 'w', 'b', 'wb'}, line, 'invalid side mark')
         check(row['papa_drunk'] in {'true', 'false'}, line, 'invalid source flag')
@@ -69,8 +73,10 @@ def validate():
         clock = row['clock_type']
         base, delay = row['base_seconds'], row['delay_seconds']
         check(clock in CLOCKS | {''}, line, 'unknown clock type')
-        if not clock:
-            check(base == '' and delay == '', line, 'time provided without a clock type')
+        if clock in {'', 'nt'}:
+            check(base == '' and delay == '', line, 'time provided for missing/no timer')
+            check(not (clock == 'nt' and row['ending'] == 'time'), line,
+                  'time expiry cannot occur without timer')
         else:
             check(re.fullmatch(r'[1-9]\d*', base) is not None and
                   int(base) <= 2**53 - 1, line, 'invalid base_seconds')
