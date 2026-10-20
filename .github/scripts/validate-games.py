@@ -73,6 +73,8 @@ def validate():
         clock = row['clock_type']
         base, delay = row['base_seconds'], row['delay_seconds']
         check(clock in CLOCKS | {''}, line, 'unknown clock type')
+        check(game == 'checkers' or clock == 'nt', line,
+              'other games currently require nt (no timer support)')
         if clock in {'', 'nt'}:
             check(base == '' and delay == '', line, 'time provided for missing/no timer')
             check(not (clock == 'nt' and row['ending'] == 'time'), line,
