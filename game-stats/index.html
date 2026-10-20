@@ -57,7 +57,13 @@
     .clock-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; font-size:.82rem; }
     .clock-row .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .clock-row .value { color:var(--muted); font-variant-numeric:tabular-nums; }
     .meter { height:6px; background:#2a394b; border-radius:20px; margin-top:7px; overflow:hidden; } .meter span { display:block; background:#668da8; height:100%; border-radius:20px; }
-    .date-row { display:grid; grid-template-columns:93px minmax(0,1fr) 84px; gap:12px; align-items:center; margin:13px 0; }
+    button.date-row { display:grid; grid-template-columns:93px minmax(0,1fr) 84px; gap:12px; align-items:center; width:100%; padding:9px 8px; margin:4px 0 0; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--text); text-align:left; font:inherit; font-weight:400; cursor:pointer; }
+    button.date-row:hover, button.date-row:focus-visible, .date-entry.is-open button.date-row { background:var(--surface2); border-color:var(--line); }
+    .date-detail { display:none; margin:1px 0 10px; padding:12px 15px; border:1px solid var(--line); border-left:3px solid var(--focus); border-radius:9px; background:#111f2e; font-size:.8rem; line-height:1.6; overflow-wrap:anywhere; }
+    .date-entry:hover .date-detail, .date-entry:focus-within .date-detail, .date-entry.is-open .date-detail { display:block; }
+    .date-detail .muted { margin-top:3px; font-size:.76rem; }
+    .date-detail ul { padding-left:19px; margin:8px 0 0; }
+    .date-detail li + li { margin-top:7px; }
     .date-name { font-size:.78rem; color:var(--muted); font-variant-numeric:tabular-nums; }
     .date-track { height:17px; display:flex; border-radius:5px; overflow:hidden; background:var(--surface2); }
     .date-track span { height:100%; } .date-track .l { background:var(--lekha); } .date-track .p { background:var(--papa); } .date-track .d { background:var(--draw); }
@@ -75,7 +81,7 @@
     .blank { color:var(--muted); padding:20px 0; font-size:.85rem; }
     .footer { margin-top:24px; color:var(--muted); font-size:.78rem; line-height:1.6; }
     @media(max-width:850px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .layout { grid-template-columns:1fr; } }
-    @media(max-width:520px) { .wrap { padding:23px 13px 44px; } .panel { padding:16px; } .filters { gap:10px; } .kpis { gap:10px; } .date-row { grid-template-columns:72px minmax(0,1fr) 61px; gap:7px; } .date-num { font-size:.67rem; } }
+    @media(max-width:520px) { .wrap { padding:23px 13px 44px; } .panel { padding:16px; } .filters { gap:10px; } .kpis { gap:10px; } button.date-row { grid-template-columns:72px minmax(0,1fr) 61px; gap:7px; } .date-num { font-size:.67rem; } }
   </style>
 </head>
 <body>
@@ -108,7 +114,7 @@
       <section class="panel"><h2>Результаты по видам игр</h2><div id="gamesBreakdown" class="stack"></div></section>
       <section class="panel"><h2>Таймеры и контроль времени</h2><div id="clocksBreakdown" class="clock-list"></div></section>
     </div>
-    <section class="panel" style="margin-bottom:20px"><h2>Динамика по датам</h2><p class="hint" style="margin-top:-6px">Полосы показывают число побед в каждый день. Исторические множители учтены; порядок партий внутри дня неизвестен.</p><div id="timeline"></div></section>
+    <section class="panel" style="margin-bottom:20px"><h2>Динамика по датам</h2><p class="hint" style="margin-top:-6px">Свежие даты сверху. Наведи на строку или нажми её, чтобы увидеть расшифровку партий. Множители учтены; порядок партий внутри дня неизвестен.</p><div id="timeline"></div></section>
     <section class="panel"><div class="summary-line"><h2 style="margin:0">Записи партий</h2><span class="muted" id="tableCount">—</span></div><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Игра / вариант</th><th>Победитель</th><th>Таймер</th><th>Сторона</th><th>Кол-во</th><th>Исходная запись</th></tr></thead><tbody id="gamesTable"></tbody></table></div></section>
     <p class="footer">Данные берутся только из <code>games.csv</code>; результаты не зашиты в HTML. При запуске через HTTP(S) файл загружается автоматически, при открытии локального <code>index.html</code> выбери CSV кнопкой сверху. HTML ничего не отправляет на сервер и не изменяет исходный файл.</p>
   </main>
@@ -174,6 +180,21 @@
     const fmtClock=r=>!r.clock_type?'Не указан':r.clock_type==='nt'?'Без таймера':CLOCK_NAMES[r.clock_type]+' · '+Math.floor(r.base_seconds/60)+':'+String(r.base_seconds%60).padStart(2,'0')+(['bd','sdel'].includes(r.clock_type)?' + '+r.delay_seconds+' с':'');
     const gameLabel=r=>GAME_NAMES[r.game]+' · '+VARIANT_NAMES[r.variant]+(r.game==='checkers'?' · '+CHECKERS_TYPE_NAMES[r.checkers_type]:'');
     const winnerLabel=v=>({lekha:'Лёха',papa:'Папа',draw:'Ничья'})[v];
+    const plural=(n,one,few,many)=>n%10===1&&n%100!==11?one:n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?few:many;
+    function clockDescription(r){
+      if(!r.clock_type)return 'таймер не указан';
+      if(r.clock_type==='nt')return 'без таймера';
+      const time=r.base_seconds<60?r.base_seconds+' с':r.base_seconds%60===0?r.base_seconds/60+' мин':Math.floor(r.base_seconds/60)+' мин '+r.base_seconds%60+' с';
+      return 'таймер '+CLOCK_NAMES[r.clock_type]+': '+time+(['bd','sdel'].includes(r.clock_type)?', задержка '+r.delay_seconds+' с':'');
+    }
+    function entryDescription(r){
+      const game=r.game==='checkers'?(r.variant==='breakthrough'?'Шашки «Прорыв»':'Классические шашки')+' ('+CHECKERS_TYPE_NAMES[r.checkers_type].toLowerCase()+')':r.game==='chess'?'Шахматы «'+VARIANT_NAMES[r.variant]+'»':GAME_NAMES[r.game];
+      const result=r.winner==='draw'?(r.count===1?'ничья':'все партии завершились вничью'):r.count===1?'победитель — '+winnerLabel(r.winner):'все партии выиграл '+winnerLabel(r.winner);
+      const side=({w:'белые (w)',b:'чёрные (b)',wb:'wb (как в источнике)'})[r.side_mark];
+      const extra=[clockDescription(r),r.ending==='time'?'завершение по времени':null,side?'отметка стороны: '+side+'; игрок не указан':null,r.papa_drunk==='true'?'пометка «п» (папа выпивший)':null,r.notes?'примечание: '+r.notes:null].filter(Boolean);
+      return '<li><strong>'+esc(game)+'</strong> — '+r.count+' '+plural(r.count,'партия','партии','партий')+', '+esc(result)+'. <span class="muted">'+extra.map(esc).join(' · ')+'</span></li>';
+    }
+
     function setStatus(msg,error=false){$('status').textContent=msg;$('status').className='state'+(error?' error':'');}
     function loadCSV(text,name,mode){try{const next=validate(parseCSV(text));rows=next;fileLabel=name;loadMode=mode;refreshGameOptions();refreshVariantOptions();refreshCheckersTypeOptions();render();setStatus('Загружен '+name+' · '+rows.length+' строк / '+sum(rows)+' партий · '+(mode==='auto'?'автоматическая загрузка':'выбранный файл'));}catch(err){setStatus('Не удалось прочитать CSV: '+err.message,true);}}
     function refreshGameOptions(){const current=$('gameFilter').value;const games=[...new Set(rows.map(r=>r.game))];$('gameFilter').innerHTML='<option value="all">Все игры</option>'+games.map(g=>'<option value="'+esc(g)+'">'+esc(GAME_NAMES[g])+'</option>').join('');$('gameFilter').value=games.includes(current)?current:'all';}
@@ -184,8 +205,27 @@
     function render(){const a=selected(),total=sum(a),l=sum(a,'lekha'),p=sum(a,'papa'),d=sum(a,'draw');$('total').textContent=total;$('groups').textContent=a.length+' строк источника';$('lekhaWins').textContent=l;$('papaWins').textContent=p;$('draws').textContent=d;$('lekhaRate').textContent=percent(l,total)+'% от всех партий';$('papaRate').textContent=percent(p,total)+'% от всех партий';const dates=a.map(x=>x.date).sort();$('period').textContent=dates.length?dateLabel(dates[0])+' — '+dateLabel(dates.at(-1)):'Нет данных';$('lead').textContent=total?(l===p?'По победам равенство':(l>p?'Лёха':'Папа')+' впереди на '+Math.abs(l-p)):'Нет партий';$('overallTrack').innerHTML=portions(l,p,d,total);renderGames(a);renderClocks(a);renderTimeline(a);renderTable(a);}
     function renderGames(a){const grouped=new Map();for(const r of a){const key=r.game+'|'+r.variant+'|'+r.checkers_type;if(!grouped.has(key))grouped.set(key,{r,rows:[]});grouped.get(key).rows.push(r);}const items=[...grouped.values()].sort((x,y)=>sum(y.rows)-sum(x.rows));$('gamesBreakdown').innerHTML=items.map(({r,rows:rs})=>{const t=sum(rs),l=sum(rs,'lekha'),p=sum(rs,'papa'),d=sum(rs,'draw');return '<div><div class="item-head"><span class="name">'+esc(gameLabel(r))+'</span><span class="numbers">'+t+' · '+l+' / '+p+(d?' / '+d:'')+'</span></div><div class="mini-track">'+portions(l,p,d,t)+'</div></div>';}).join('')||'<div class="blank">Нет партий для выбранных фильтров.</div>';}
     function renderClocks(a){const grouped=new Map();for(const r of a){const key=fmtClock(r);grouped.set(key,(grouped.get(key)||0)+r.count);}const items=[...grouped].sort((a,b)=>b[1]-a[1]);const max=Math.max(...items.map(x=>x[1]),1);$('clocksBreakdown').innerHTML=items.map(([name,n])=>'<div><div class="clock-row"><span class="name" title="'+esc(name)+'">'+esc(name)+'</span><span class="value">'+n+'</span></div><div class="meter"><span style="width:'+(n/max*100)+'%"></span></div></div>').join('')||'<div class="blank">Нет данных.</div>';}
-    function renderTimeline(a){const days=new Map();for(const r of a){if(!days.has(r.date))days.set(r.date,{lekha:0,papa:0,draw:0});days.get(r.date)[r.winner]+=r.count;}const items=[...days].sort(([x],[y])=>x.localeCompare(y));const max=Math.max(...items.map(([,x])=>x.lekha+x.papa+x.draw),1);$('timeline').innerHTML=items.map(([date,x])=>{const n=x.lekha+x.papa+x.draw;return '<div class="date-row"><span class="date-name">'+esc(dateLabel(date).slice(0,5))+'</span><div class="date-track" title="'+esc(date)+' · Лёха: '+x.lekha+'; Папа: '+x.papa+'; Ничьи: '+x.draw+'">'+portions(x.lekha,x.papa,x.draw,max)+'</div><span class="date-num">'+x.lekha+' / '+x.papa+(x.draw?' / '+x.draw:'')+'</span></div>';}).join('')||'<div class="blank">Нет данных.</div>';}
+    function renderTimeline(a){
+      const days=new Map();
+      for(const r of a){
+        if(!days.has(r.date))days.set(r.date,{lekha:0,papa:0,draw:0,records:[]});
+        const day=days.get(r.date);
+        day[r.winner]+=r.count;
+        day.records.push(r);
+      }
+      const items=[...days].sort(([x],[y])=>y.localeCompare(x));
+      const max=Math.max(...items.map(([,x])=>x.lekha+x.papa+x.draw),1);
+      $('timeline').innerHTML=items.map(([date,x])=>{
+        const n=x.lekha+x.papa+x.draw, label=dateLabel(date);
+        return '<div class="date-entry"><button type="button" class="date-row" aria-controls="date-detail-'+esc(date)+'" aria-expanded="false" aria-label="Подробности за '+esc(label)+'">'+
+          '<span class="date-name">'+esc(label.slice(0,5))+'</span><span class="date-track">'+portions(x.lekha,x.papa,x.draw,max)+'</span>'+
+          '<span class="date-num">'+x.lekha+' / '+x.papa+(x.draw?' / '+x.draw:'')+'</span></button>'+
+          '<div class="date-detail" id="date-detail-'+esc(date)+'"><strong>'+esc(label)+' · '+n+' '+plural(n,'партия','партии','партий')+'</strong>'+
+          '<div class="muted">Лёха: '+x.lekha+' · Папа: '+x.papa+' · Ничьи: '+x.draw+'</div><ul>'+x.records.map(entryDescription).join('')+'</ul></div></div>';
+      }).join('')||'<div class="blank">Нет данных.</div>';
+    }
     function renderTable(a){const sorted=[...a].sort((x,y)=>y.date.localeCompare(x.date)||y.id.localeCompare(x.id));$('tableCount').textContent=sorted.length+' строк / '+sum(a)+' партий';$('gamesTable').innerHTML=sorted.map(r=>'<tr><td class="nobr">'+esc(dateLabel(r.date))+'</td><td>'+esc(gameLabel(r))+'</td><td><span class="tag '+esc(r.winner==='lekha'?'':r.winner==='papa'?'papa':'draw')+'">'+esc(winnerLabel(r.winner))+'</span>'+(r.ending==='time'?'<div class="flag">Время истекло</div>':'')+(r.papa_drunk==='true'?'<div class="flag" title="В источнике есть пометка п">Пометка «п»</div>':'')+'</td><td class="nobr">'+esc(fmtClock(r))+'</td><td>'+esc(r.side_mark||'—')+'</td><td>'+r.count+'</td><td class="nobr muted" title="'+esc(r.notes||'')+'">'+esc(r.source_entry||'—')+'</td></tr>').join('')||'<tr><td colspan="7" class="blank">Нет совпадений. Сбросьте фильтры.</td></tr>';}
+    $('timeline').addEventListener('click',e=>{const button=e.target.closest('button.date-row');if(!button||!$('timeline').contains(button))return;const entry=button.closest('.date-entry'),open=!entry.classList.contains('is-open');for(const other of $('timeline').querySelectorAll('.date-entry.is-open')){other.classList.remove('is-open');other.querySelector('button.date-row').setAttribute('aria-expanded','false');}entry.classList.toggle('is-open',open);button.setAttribute('aria-expanded',String(open));if(!open)button.blur();});
     for(const id of ['variantFilter','checkersTypeFilter','winnerFilter','clockFilter','flagFilter','endingFilter','dateFrom','dateTo'])$(id).addEventListener('change',render);
     $('gameFilter').addEventListener('change',()=>{refreshVariantOptions();refreshCheckersTypeOptions();render();});
     $('resetButton').addEventListener('click',()=>{for(const id of ['gameFilter','checkersTypeFilter','winnerFilter','clockFilter','flagFilter','endingFilter'])$(id).value='all';refreshVariantOptions();$('variantFilter').value='all';$('dateFrom').value='';$('dateTo').value='';render();});
