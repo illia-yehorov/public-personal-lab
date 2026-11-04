@@ -73,6 +73,40 @@
     .muted { color:var(--muted); } .nobr { white-space:nowrap; }
     .blank { color:var(--muted); padding:20px 0; font-size:.85rem; }
     .footer { margin-top:24px; color:var(--muted); font-size:.78rem; line-height:1.6; }
+
+    /* Compact chess scoreboards, shared by the overview and chess page. */
+    .chess-highlights { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:20px; }
+    .chess-insight { padding:18px 20px; }
+    .chess-head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:12px; }
+    .chess-head h2 { margin:0; font-size:1.04rem; }
+    .chess-total { color:var(--muted); font-size:.79rem; white-space:nowrap; }
+    .chess-total strong { color:var(--text); font-size:1.14rem; font-variant-numeric:tabular-nums; }
+    .chess-score-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin:13px 0 12px; }
+    .chess-score { border:1px solid var(--line); background:var(--surface2); border-radius:9px; padding:10px 12px; min-width:0; }
+    .chess-score span { display:block; color:var(--muted); font-size:.72rem; }
+    .chess-score strong { display:block; font-size:1.6rem; font-variant-numeric:tabular-nums; line-height:1.25; margin:3px 0; }
+    .chess-score small { font-size:.73rem; color:var(--muted); }
+    .chess-main-bar { height:10px; margin:2px 0 15px; }
+    .chess-insight h3 { color:var(--muted); font-size:.77rem; text-transform:uppercase; letter-spacing:.05em; margin:0 0 11px; }
+    .chess-insight-stack { gap:11px; }
+    .chess-metric-caption { display:flex; flex-wrap:wrap; justify-content:space-between; gap:3px 10px; font-size:.77rem; margin-bottom:6px; }
+    .chess-metric-caption strong { color:var(--text); font-weight:700; }
+    .chess-metric-caption span:last-child { color:var(--muted); font-variant-numeric:tabular-nums; }
+    .chess-insight-stack .mini-track { height:7px; }
+    .chess-control-hint { font-size:.77rem; line-height:1.45; margin:-3px 0 14px; }
+    .chess-detail-link { display:inline-block; margin-top:13px; color:var(--lekha); font-size:.8rem; font-weight:700; text-decoration:none; }
+    .chess-detail-link:hover { text-decoration:underline; }
+    /* Native details/summary keeps every filter accessible without using the top of the page. */
+    .filter-disclosure { margin-bottom:20px; }
+    .filter-disclosure > summary { display:flex; justify-content:space-between; align-items:center; gap:12px; list-style:none; cursor:pointer; padding:12px 16px; border-radius:11px; border:1px solid var(--line); background:var(--surface); font-size:.85rem; font-weight:750; }
+    .filter-disclosure > summary::-webkit-details-marker { display:none; }
+    .filter-disclosure > summary:hover { border-color:var(--lekha); }
+    .filter-disclosure > summary::after { content:"⌄"; font-size:1.2rem; color:var(--muted); margin-left:auto; line-height:1; }
+    .filter-disclosure[open] > summary::after { transform:rotate(180deg); }
+    .filter-summary { font-weight:400; color:var(--muted); margin-left:6px; }
+    .filter-disclosure .filters { margin:10px 0 0; }
+    @media(max-width:850px) { .chess-highlights { grid-template-columns:1fr; } }
+    @media(max-width:520px) { .chess-insight { padding:16px; } .chess-score { padding:9px; } .chess-score strong { font-size:1.4rem; } }
     @media(max-width:850px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .layout { grid-template-columns:1fr; } }
     @media(max-width:520px) { .wrap { padding:23px 13px 44px; } .panel { padding:16px; } .filters { gap:10px; } .kpis { gap:10px; } button.date-row { grid-template-columns:72px minmax(0,1fr) 61px; gap:7px; } .date-num { font-size:.67rem; } }
   </style>
@@ -84,7 +118,10 @@
       <div class="tools"><a class="file-button" href="./index.html">Все игры</a><label class="file-button" for="csvFile">↥ Загрузить CSV<input id="csvFile" type="file" accept=".csv,text/csv"></label><button id="retryButton" type="button">↻ Обновить</button></div>
     </header>
     <div id="status" role="status" class="state">Загрузка данных…</div>
-    <section class="panel filters" aria-label="Фильтры">
+    <div id="chessHighlights" class="chess-highlights" aria-label="Краткая шахматная статистика"></div>
+    <details class="filter-disclosure">
+      <summary>⚙ Фильтры <span id="filterSummary" class="filter-summary">· Все записи</span></summary>
+      <section class="panel filters" aria-label="Фильтры">
       <div class="filter" style="display:none"><label for="gameFilter">Игра</label><select id="gameFilter"><option value="all">Все игры</option></select></div>
       <div class="filter"><label for="variantFilter">Вариант</label><select id="variantFilter"><option value="all">Все варианты</option></select></div>
       <div class="filter" style="display:none"><label for="checkersTypeFilter">Тип шашек</label><select id="checkersTypeFilter"><option value="all">Все типы</option></select></div>
@@ -95,21 +132,12 @@
       <div class="filter"><label for="flagFilter">Пометка «п»</label><select id="flagFilter"><option value="all">Все записи</option><option value="true">С пометкой</option><option value="false">Без пометки</option></select></div>
       <div class="filter"><label for="endingFilter">Окончание</label><select id="endingFilter"><option value="all">Все окончания</option><option value="time">По времени</option><option value="unspecified">Не указано</option></select></div>
       <div class="filter actions"><button id="resetButton" type="button">Сбросить фильтры</button></div>
-    </section>
-    <section class="kpis" aria-label="Основные показатели">
-      <div class="panel kpi"><span>Всего партий</span><strong id="total">—</strong><small id="groups">Исторические записи</small></div>
-      <div class="panel kpi"><span>Победы Лёхи</span><strong id="lekhaWins" class="color-lekha">—</strong><small id="lekhaRate">—</small></div>
-      <div class="panel kpi"><span>Победы папы</span><strong id="papaWins" class="color-papa">—</strong><small id="papaRate">—</small></div>
-      <div class="panel kpi"><span>Ничьи</span><strong id="draws">—</strong><small id="period">—</small></div>
-    </section>
-    <div class="layout">
-      <section class="panel"><h2>Результаты по вариантам шахмат</h2><div id="gamesBreakdown" class="stack"></div></section>
-      <section class="panel"><h2>Шахматные контроли времени</h2><p class="hint" style="margin-top:-6px">Результаты по выбранным фильтрам. Для новых партий «5+5» и «3+2» сохранены буквально: тип часов в Google Docs не определён.</p><div id="clocksBreakdown" class="stack clock-results"></div></section>
-    </div>
+      </section>
+    </details>
     <section class="panel" style="margin-bottom:20px"><h2>Отметки цвета</h2><p class="hint">Буквы w/b/ч/б сохраняются как в источнике. Неуказанный цвет не восстанавливается по догадке.</p><div id="chessSides" class="stack"></div></section>
     <section class="panel" style="margin-bottom:20px"><h2>Динамика по датам</h2><p class="hint" style="margin-top:-6px">Свежие даты сверху. Наведи на строку для всплывающей подсказки или нажми, чтобы закрепить её и прокрутить при необходимости. Порядок партий внутри дня неизвестен.</p><div id="timeline"></div></section>
     <section class="panel"><div class="summary-line"><h2 style="margin:0">Записи партий</h2><span class="muted" id="tableCount">—</span></div><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Игра / вариант</th><th>Победитель</th><th>Таймер</th><th>Сторона</th><th>Кол-во</th><th>Исходная запись</th></tr></thead><tbody id="gamesTable"></tbody></table></div></section>
-    <p class="footer">Данные берутся только из <code>games.csv</code>; результаты не зашиты в HTML. При запуске через HTTP(S) файл загружается автоматически, при открытии локального <code>index.html</code> выбери CSV кнопкой сверху. HTML ничего не отправляет на сервер и не изменяет исходный файл.</p>
+    <p class="footer">Данные берутся только из <code>games.csv</code>; результаты не зашиты в HTML. При запуске через HTTP(S) файл загружается автоматически, при открытии локального <code>chess.html</code> выбери CSV кнопкой сверху. HTML ничего не отправляет на сервер и не изменяет исходный файл.</p>
   </main>
   <div id="timelineTooltip" class="date-tooltip" role="tooltip" hidden></div>
   <script>
@@ -213,7 +241,53 @@
     function refreshCheckersTypeOptions(){const current=$('checkersTypeFilter').value;const game='chess';const types=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.checkers_type).filter(Boolean))];$('checkersTypeFilter').innerHTML='<option value="all">Все типы</option>'+types.map(v=>'<option value="'+esc(v)+'">'+esc(CHECKERS_TYPE_NAMES[v])+'</option>').join('');$('checkersTypeFilter').value=types.includes(current)?current:'all';}
     function selected(){return rows.filter(r=>r.game==='chess' && ($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('checkersTypeFilter').value==='all'||r.checkers_type===$('checkersTypeFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||r.clock_type===$('clockFilter').value||($('clockFilter').value==='unknown'&&!r.clock_type))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&($('endingFilter').value==='all'||r.ending===$('endingFilter').value||($('endingFilter').value==='unspecified'&&!r.ending))&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
     function portions(l,p,d,total){if(!total)return '';return '<span class="l" style="width:'+percent(l,total)+'%"></span><span class="p" style="width:'+percent(p,total)+'%"></span><span class="d" style="width:'+percent(d,total)+'%"></span>';}
-    function render(){const a=selected(),total=sum(a),l=sum(a,'lekha'),p=sum(a,'papa'),d=sum(a,'draw');$('total').textContent=total;$('groups').textContent=a.length+' строк источника';$('lekhaWins').textContent=l;$('papaWins').textContent=p;$('draws').textContent=d;$('lekhaRate').textContent=percent(l,total)+'% от всех партий';$('papaRate').textContent=percent(p,total)+'% от всех партий';const dates=a.map(x=>x.date).sort();$('period').textContent=dates.length?dateLabel(dates[0])+' — '+dateLabel(dates.at(-1)):'Нет данных';renderGames(a);renderClocks(a);renderSides(a);renderTimeline(a);renderTable(a);}
+    function updateFilterSummary(){
+      const ids=['variantFilter','winnerFilter','clockFilter','flagFilter','endingFilter','dateFrom','dateTo'];
+      const active=ids.filter(id=>$(id).value && $(id).value!=='all').length;
+      $('filterSummary').textContent=active?'· Активно: '+active:'· Все записи';
+    }
+
+    function renderChessHighlights(data, showLink=false) {
+      const total=sum(data), lekha=sum(data,'lekha'), papa=sum(data,'papa'), draws=sum(data,'draw');
+      const variants=new Map(), controls=new Map();
+      const add=(map,key,r)=>{
+        if(!map.has(key))map.set(key,{lekha:0,papa:0,draw:0});
+        map.get(key)[r.winner]+=r.count;
+      };
+      for(const r of data){
+        add(variants, VARIANT_NAMES[r.variant]||r.variant, r);
+        const control=r.time_control_raw?r.time_control_raw+' · система не указана':
+          r.clock_type==='nt'?'Без таймера':r.clock_type?fmtClock(r):'Контроль не указан';
+        add(controls,control,r);
+      }
+      const breakdown=grouped=>[...grouped].sort((a,b)=>{
+        const sumGroup=x=>x.lekha+x.papa+x.draw;
+        return sumGroup(b[1])-sumGroup(a[1])||a[0].localeCompare(b[0],'ru');
+      }).map(([name,x])=>{
+        const n=x.lekha+x.papa+x.draw;
+        return '<div class="chess-metric-row"><div class="chess-metric-caption"><strong>'+esc(name)+'</strong>'+
+          '<span>Всего '+n+' · Лёха '+x.lekha+' / Папа '+x.papa+(x.draw?' / ничьи '+x.draw:'')+'</span></div>'+
+          '<div class="mini-track" role="img" aria-label="'+esc(name)+': '+n+' партий, Лёха '+x.lekha+', Папа '+x.papa+', ничьи '+x.draw+'">'+
+          portions(x.lekha,x.papa,x.draw,n)+'</div></div>';
+      }).join('')||'<div class="blank">Нет партий для выбранных фильтров.</div>';
+      const score=(name,n,cls)=>'<div class="chess-score"><span>'+name+'</span>'+
+        '<strong class="'+cls+'">'+n+'</strong><small>'+percent(n,total)+'%</small></div>';
+      const link=showLink?'<a class="chess-detail-link" href="./chess.html">Открыть шахматную статистику →</a>':'';
+      $('chessHighlights').innerHTML=
+        '<section class="panel chess-insight"><div class="chess-head"><h2>♟ Шахматная дуэль</h2>'+
+        '<span class="chess-total">Всего <strong>'+total+'</strong></span></div>'+
+        '<div class="chess-score-grid">'+score('Лёха',lekha,'color-lekha')+
+        score('Папа',papa,'color-papa')+score('Ничьи',draws,'')+'</div>'+
+        '<div class="mini-track chess-main-bar" role="img" aria-label="Все шахматные партии: Лёха '+lekha+', Папа '+papa+', ничьи '+draws+'">'+
+        portions(lekha,papa,draws,total)+'</div>'+
+        '<h3>По вариантам</h3><div class="stack chess-insight-stack">'+breakdown(variants)+'</div>'+link+'</section>'+
+        '<section class="panel chess-insight"><div class="chess-head"><h2>⏱ Контроль времени</h2>'+
+        '<span class="chess-total">'+total+' партий</span></div>'+
+        '<p class="hint chess-control-hint">Для 5+5 и 3+2 система часов пока не уточнена.</p>'+
+        '<div class="stack chess-insight-stack">'+breakdown(controls)+'</div></section>';
+    }
+
+    function render(){const a=selected();updateFilterSummary();renderChessHighlights(a);renderSides(a);renderTimeline(a);renderTable(a);}
     function resultSummary(t,l,p,d){return '<span class="numbers"><span class="result-stat">Всего: <strong>'+t+'</strong></span><span class="result-stat color-lekha">Лёха: '+l+'</span><span class="result-stat color-papa">Папа: '+p+'</span>'+(d?'<span class="result-stat">Ничьи: '+d+'</span>':'')+'</span>';}
     function renderGames(a){const grouped=new Map();for(const r of a){const key=r.game+'|'+r.variant+'|'+r.checkers_type;if(!grouped.has(key))grouped.set(key,{r,rows:[]});grouped.get(key).rows.push(r);}const items=[...grouped.values()].sort((x,y)=>sum(y.rows)-sum(x.rows));$('gamesBreakdown').innerHTML=items.map(({r,rows:rs})=>{const t=sum(rs),l=sum(rs,'lekha'),p=sum(rs,'papa'),d=sum(rs,'draw');return '<div><div class="item-head"><span class="name">'+esc(gameLabel(r))+'</span>'+resultSummary(t,l,p,d)+'</div><div class="mini-track">'+portions(l,p,d,t)+'</div></div>';}).join('')||'<div class="blank">Нет партий для выбранных фильтров.</div>';}
     function renderClocks(a){

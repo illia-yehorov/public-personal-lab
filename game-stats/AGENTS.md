@@ -11,7 +11,7 @@ These instructions do **not** authorize direct commits for other folders or repo
 
 ## GitHub workflow and authorization
 - **Routine verified game data updates** that only change `game-stats/games.csv` (and optionally its existing statistics documentation within `game-stats/`) may commit directly to `main`, with **one commit per user-requested iteration**, and **no Pull Request**. The user has already authorized this; do not ask again.
-- For changes to schema, validation, deployment, or substantial frontend redesign, follow the repository rule: use a feature branch and Pull Request. If the user requested the change and all relevant CI checks pass, **merge the Pull Request yourself**, preferably with squash merge, without asking the user for a manual GitHub action.
+- User explicitly permits committing verified, user-requested UI changes *entirely within* `game-stats/` directly to `main` in one commit without a Pull Request. For changes to schema, validation, deployment, or substantial frontend redesign beyond this explicitly authorized directory, follow the repository rule: use a feature branch and Pull Request. If the user requested the change and all relevant CI checks pass, **merge the Pull Request yourself**, preferably with squash merge, without asking the user for a manual GitHub action.
 - Never merge when checks fail or when game data are unverified; report the blocker. Do not force-push or rewrite shared history.
 - Do **not** apply the direct-`main` exception outside this folder, including `.github/` or any other repository.
 
