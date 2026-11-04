@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'game-stats/index.html'
+      - 'game-stats/chess.html'
       - 'game-stats/games.csv'
       - '.github/workflows/deploy.yml'
       - '.github/scripts/validate-games.py'
@@ -12,6 +13,7 @@ on:
     branches: [main]
     paths:
       - 'game-stats/index.html'
+      - 'game-stats/chess.html'
       - 'game-stats/games.csv'
       - '.github/workflows/deploy.yml'
       - '.github/scripts/validate-games.py'
@@ -50,7 +52,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p _site/game-stats
-          cp game-stats/index.html game-stats/games.csv _site/game-stats/
+          cp game-stats/index.html game-stats/chess.html game-stats/games.csv _site/game-stats/
           touch _site/.nojekyll
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

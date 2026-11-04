@@ -12,10 +12,10 @@ HTML_PATH = ROOT / 'game-stats' / 'index.html'
 FIELDS = [
     'id', 'date', 'game', 'variant', 'winner', 'clock_type', 'base_seconds',
     'delay_seconds', 'side_mark', 'papa_drunk', 'count', 'source_entry', 'notes',
-    'checkers_type', 'ending',
+    'checkers_type', 'ending', 'time_control_raw',
 ]
 VARIANTS = {
-    'checkers': {'breakthrough', 'standard'},
+    'checkers': {'breakthrough', 'standard', 'antidraughts'},
     'chess': {'three_check', 'standard'},
     'quoridouble': {'default'},
     'hexagon': {'default'},
@@ -31,6 +31,9 @@ def check(condition, line, message):
 def validate():
     if not HTML_PATH.is_file() or not HTML_PATH.stat().st_size:
         raise ValueError('game-stats/index.html is missing or empty')
+    chess_html = HTML_PATH.with_name('chess.html')
+    if not chess_html.is_file() or not chess_html.stat().st_size:
+        raise ValueError('game-stats/chess.html is missing or empty')
     if not CSV_PATH.is_file() or not CSV_PATH.stat().st_size:
         raise ValueError('game-stats/games.csv is missing or empty')
 
@@ -62,7 +65,8 @@ def validate():
               line, 'invalid checkers type')
         check(row['ending'] in {'', 'time'}, line, 'invalid ending marker')
         check(winner in totals, line, 'unknown winner')
-        check(row['side_mark'] in {'', 'w', 'b', 'wb'}, line, 'invalid side mark')
+        check(row['side_mark'] in {'', 'w', 'b', 'wb', 'ч', 'б'}, line, 'invalid side mark')
+        check(game == 'chess' or row['side_mark'] not in {'ч', 'б'}, line, 'Cyrillic side mark is only supported for chess')
         check(row['papa_drunk'] in {'true', 'false'}, line, 'invalid source flag')
         check(re.fullmatch(r'[1-9]\d*', row['count']) is not None, line,
               'count must be a positive integer')
@@ -73,15 +77,22 @@ def validate():
         clock = row['clock_type']
         base, delay = row['base_seconds'], row['delay_seconds']
         check(clock in CLOCKS | {''}, line, 'unknown clock type')
-        check(game == 'checkers' or clock == 'nt', line,
-              'other games currently require nt (no timer support)')
+        raw = row['time_control_raw']
+        check(not raw or (clock == '' and game in {'checkers', 'chess'} and
+              re.fullmatch(r'[0-9]+\+[0-9]+', raw) is not None), line,
+              'raw time control must be a N+N value with unspecified clock type')
+        check(game == 'checkers' or clock == 'nt' or
+              (game == 'chess' and clock == '' and bool(raw)), line,
+              'non-checkers games require no timer or explicit chess raw control')
         if clock in {'', 'nt'}:
             check(base == '' and delay == '', line, 'time provided for missing/no timer')
             check(not (clock == 'nt' and row['ending'] == 'time'), line,
                   'time expiry cannot occur without timer')
         else:
-            check(re.fullmatch(r'[1-9]\d*', base) is not None and
-                  int(base) <= 2**53 - 1, line, 'invalid base_seconds')
+            check(re.fullmatch(r'\d+', base) is not None and
+                  int(base) <= 2**53 - 1 and
+                  (int(base) > 0 or (clock == 'bd' and delay.isdigit() and int(delay) > 0)),
+                  line, 'invalid base_seconds')
             if clock in {'bd', 'sdel'}:
                 check(re.fullmatch(r'\d+', delay) is not None and
                       int(delay) <= 2**53 - 1, line, 'invalid delay_seconds')

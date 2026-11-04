@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Шахматы · Рубилово</title>
+  <style>
+    :root { --bg:#0c121b; --surface:#141e2b; --surface2:#1b2939; --line:#2a3a4a; --text:#f3f6fa; --muted:#a7b6c5; --lekha:#40c5b3; --papa:#f2b35b; --draw:#8290a3; --focus:#8ddfd3; }
+    * { box-sizing:border-box; }
+    html { font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif; }
+    body { margin:0; color:var(--text); background:radial-gradient(circle at 85% -12%,#21364b 0,transparent 37%),var(--bg); min-height:100vh; }
+    .wrap { max-width:1190px; padding:38px 22px 70px; margin:auto; }
+    header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:20px; margin-bottom:26px; }
+    .eyebrow { font-size:.7rem; text-transform:uppercase; font-weight:800; letter-spacing:.19em; color:var(--lekha); }
+    h1 { font-size:clamp(2.2rem,5.5vw,4rem); letter-spacing:-.06em; line-height:1.05; margin:9px 0; }
+    h2 { margin:0 0 17px; font-size:1.16rem; letter-spacing:-.025em; }
+    .sub,.hint { color:var(--muted); font-size:.88rem; line-height:1.6; }
+    .sub { margin:0; }
+    button,.file-button,select,input { font:inherit; }
+    button,.file-button { display:inline-flex; align-items:center; gap:9px; justify-content:center; cursor:pointer; padding:11px 16px; border-radius:11px; border:1px solid var(--line); background:var(--surface2); color:var(--text); font-weight:700; font-size:.88rem; }
+    button:hover,.file-button:hover { border-color:var(--lekha); }
+    :focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+    .file-button { background:var(--lekha); color:#08251f; border-color:var(--lekha); }
+    .file-button:hover { background:#66dac9; }
+    .file-button input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+    .tools { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+    .state { border:1px solid var(--line); background:var(--surface); border-radius:13px; color:var(--muted); padding:13px 16px; margin-bottom:22px; line-height:1.5; font-size:.85rem; }
+    .state.error { border-color:#c46d73; color:#ffd9da; }
+    .panel { background:linear-gradient(155deg,#172434,#121c29); border:1px solid var(--line); border-radius:17px; padding:22px; min-width:0; }
+    .filters { display:grid; grid-template-columns:repeat(4,minmax(130px,1fr)); gap:14px; margin-bottom:20px; }
+    .filter label { display:block; color:var(--muted); font-size:.73rem; font-weight:750; margin-bottom:7px; }
+    select,input[type=date] { color:var(--text); background:#101a26; width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:9px; min-height:42px; }
+    select:disabled,input:disabled { opacity:.45; }
+    .filter .date-wrap { display:flex; gap:8px; }
+    .filter .date-wrap input { min-width:0; }
+    .filter.actions { display:flex; align-items:flex-end; }
+    .filter.actions button { width:100%; min-height:42px; }
+    .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:20px; }
+    .kpi span { font-size:.75rem; color:var(--muted); font-weight:750; }
+    .kpi strong { display:block; font-size:clamp(1.8rem,4vw,2.6rem); letter-spacing:-.05em; margin:8px 0 3px; font-variant-numeric:tabular-nums; }
+    .kpi small { font-size:.76rem; color:var(--muted); }
+    .color-lekha { color:var(--lekha); } .color-papa { color:var(--papa); }
+    .summary-line { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; font-size:.85rem; margin-bottom:12px; }
+    .layout { display:grid; grid-template-columns:1.15fr .85fr; gap:18px; margin-bottom:20px; }
+    .stack { display:grid; gap:15px; }
+    .item-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.82rem; gap:6px 12px; margin-bottom:7px; }
+    .item-head .name { font-weight:700; } .item-head .numbers { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:3px 10px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .item-head .numbers .result-stat { white-space:nowrap; } .item-head .numbers strong { color:var(--text); }
+    .mini-track { height:10px; overflow:hidden; display:flex; background:#263647; border-radius:20px; }
+    .mini-track .l { background:var(--lekha); } .mini-track .p { background:var(--papa); } .mini-track .d { background:var(--draw); }
+    button.date-row { display:grid; grid-template-columns:93px minmax(0,1fr) 84px; gap:12px; align-items:center; width:100%; padding:9px 8px; margin:4px 0 0; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--text); text-align:left; font:inherit; font-weight:400; cursor:pointer; }
+    button.date-row:hover, button.date-row:focus-visible, .date-entry.is-active button.date-row { background:var(--surface2); border-color:var(--line); }
+    .date-tooltip { position:fixed; z-index:1000; width:min(440px,calc(100vw - 24px)); max-height:min(75vh,520px); overflow-y:auto; overscroll-behavior:contain; padding:12px 15px; border:1px solid var(--line); border-left:3px solid var(--focus); border-radius:10px; background:#111f2e; box-shadow:0 14px 38px #0009; color:var(--text); font-size:.8rem; line-height:1.5; overflow-wrap:anywhere; pointer-events:none; }
+    .date-tooltip[hidden] { display:none; }
+    .date-tooltip.is-pinned { pointer-events:auto; }
+    .date-tooltip .muted { margin-top:3px; font-size:.76rem; }
+    .date-tooltip ul { padding-left:19px; margin:8px 0 0; }
+    .date-tooltip li + li { margin-top:7px; }
+    .date-name { font-size:.78rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .date-track { height:17px; display:flex; border-radius:5px; overflow:hidden; background:var(--surface2); }
+    .date-track span { height:100%; } .date-track .l { background:var(--lekha); } .date-track .p { background:var(--papa); } .date-track .d { background:var(--draw); }
+    .date-num { font-size:.75rem; color:var(--muted); text-align:right; font-variant-numeric:tabular-nums; }
+    .table-wrap { overflow:auto; border-radius:11px; border:1px solid var(--line); }
+    table { width:100%; border-collapse:collapse; text-align:left; font-size:.82rem; }
+    th { background:#1c2b3b; font-size:.7rem; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); position:sticky; top:0; white-space:nowrap; }
+    th,td { padding:11px 13px; border-bottom:1px solid var(--line); vertical-align:top; }
+    tbody tr:last-child td { border-bottom:0; }
+    tbody tr:hover { background:#1b2a39; }
+    .tag { display:inline-block; padding:3px 7px; border-radius:6px; color:#08251f; background:var(--lekha); font-size:.72rem; font-weight:750; }
+    .tag.papa { background:var(--papa); color:#34230c; } .tag.draw { background:var(--draw); color:#111e2e; }
+    .flag { color:var(--papa); font-size:.75rem; white-space:nowrap; }
+    .muted { color:var(--muted); } .nobr { white-space:nowrap; }
+    .blank { color:var(--muted); padding:20px 0; font-size:.85rem; }
+    .footer { margin-top:24px; color:var(--muted); font-size:.78rem; line-height:1.6; }
+    @media(max-width:850px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .layout { grid-template-columns:1fr; } }
+    @media(max-width:520px) { .wrap { padding:23px 13px 44px; } .panel { padding:16px; } .filters { gap:10px; } .kpis { gap:10px; } button.date-row { grid-template-columns:72px minmax(0,1fr) 61px; gap:7px; } .date-num { font-size:.67rem; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div><div class="eyebrow">Personal Lab · Game stats</div><h1>Шахматы<span style="color:var(--lekha)">.</span></h1><p class="sub">Шахматные партии Лёхи и папы: варианты, результаты, контроль времени и цвета.</p></div>
+      <div class="tools"><a class="file-button" href="./index.html">Все игры</a><label class="file-button" for="csvFile">↥ Загрузить CSV<input id="csvFile" type="file" accept=".csv,text/csv"></label><button id="retryButton" type="button">↻ Обновить</button></div>
+    </header>
+    <div id="status" role="status" class="state">Загрузка данных…</div>
+    <section class="panel filters" aria-label="Фильтры">
+      <div class="filter" style="display:none"><label for="gameFilter">Игра</label><select id="gameFilter"><option value="all">Все игры</option></select></div>
+      <div class="filter"><label for="variantFilter">Вариант</label><select id="variantFilter"><option value="all">Все варианты</option></select></div>
+      <div class="filter" style="display:none"><label for="checkersTypeFilter">Тип шашек</label><select id="checkersTypeFilter"><option value="all">Все типы</option></select></div>
+      <div class="filter"><label for="winnerFilter">Победитель</label><select id="winnerFilter"><option value="all">Все результаты</option><option value="lekha">Лёха</option><option value="papa">Папа</option><option value="draw">Ничья</option></select></div>
+      <div class="filter"><label for="clockFilter">Система часов</label><select id="clockFilter"><option value="all">Все системы</option><option value="bd">Bronstein</option><option value="sdel">Simple Delay</option><option value="hg">Hourglass</option><option value="sd">Sudden Death</option><option value="nt">Без таймера</option><option value="unknown">Не указана</option></select></div>
+      <div class="filter"><label for="dateFrom">С даты</label><input type="date" id="dateFrom"></div>
+      <div class="filter"><label for="dateTo">По дату</label><input type="date" id="dateTo"></div>
+      <div class="filter"><label for="flagFilter">Пометка «п»</label><select id="flagFilter"><option value="all">Все записи</option><option value="true">С пометкой</option><option value="false">Без пометки</option></select></div>
+      <div class="filter"><label for="endingFilter">Окончание</label><select id="endingFilter"><option value="all">Все окончания</option><option value="time">По времени</option><option value="unspecified">Не указано</option></select></div>
+      <div class="filter actions"><button id="resetButton" type="button">Сбросить фильтры</button></div>
+    </section>
+    <section class="kpis" aria-label="Основные показатели">
+      <div class="panel kpi"><span>Всего партий</span><strong id="total">—</strong><small id="groups">Исторические записи</small></div>
+      <div class="panel kpi"><span>Победы Лёхи</span><strong id="lekhaWins" class="color-lekha">—</strong><small id="lekhaRate">—</small></div>
+      <div class="panel kpi"><span>Победы папы</span><strong id="papaWins" class="color-papa">—</strong><small id="papaRate">—</small></div>
+      <div class="panel kpi"><span>Ничьи</span><strong id="draws">—</strong><small id="period">—</small></div>
+    </section>
+    <div class="layout">
+      <section class="panel"><h2>Результаты по вариантам шахмат</h2><div id="gamesBreakdown" class="stack"></div></section>
+      <section class="panel"><h2>Шахматные контроли времени</h2><p class="hint" style="margin-top:-6px">Результаты по выбранным фильтрам. Для новых партий «5+5» и «3+2» сохранены буквально: тип часов в Google Docs не определён.</p><div id="clocksBreakdown" class="stack clock-results"></div></section>
+    </div>
+    <section class="panel" style="margin-bottom:20px"><h2>Отметки цвета</h2><p class="hint">Буквы w/b/ч/б сохраняются как в источнике. Неуказанный цвет не восстанавливается по догадке.</p><div id="chessSides" class="stack"></div></section>
+    <section class="panel" style="margin-bottom:20px"><h2>Динамика по датам</h2><p class="hint" style="margin-top:-6px">Свежие даты сверху. Наведи на строку для всплывающей подсказки или нажми, чтобы закрепить её и прокрутить при необходимости. Порядок партий внутри дня неизвестен.</p><div id="timeline"></div></section>
+    <section class="panel"><div class="summary-line"><h2 style="margin:0">Записи партий</h2><span class="muted" id="tableCount">—</span></div><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Игра / вариант</th><th>Победитель</th><th>Таймер</th><th>Сторона</th><th>Кол-во</th><th>Исходная запись</th></tr></thead><tbody id="gamesTable"></tbody></table></div></section>
+    <p class="footer">Данные берутся только из <code>games.csv</code>; результаты не зашиты в HTML. При запуске через HTTP(S) файл загружается автоматически, при открытии локального <code>index.html</code> выбери CSV кнопкой сверху. HTML ничего не отправляет на сервер и не изменяет исходный файл.</p>
+  </main>
+  <div id="timelineTooltip" class="date-tooltip" role="tooltip" hidden></div>
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const REQUIRED = ['id','date','game','variant','winner','clock_type','base_seconds','delay_seconds','side_mark','papa_drunk','count','source_entry','notes','checkers_type','ending','time_control_raw'];
+    const GAME_NAMES = {checkers:'Шашки',chess:'Шахматы',quoridouble:'Quoridouble',hexagon:'Hexagon'};
+    const VARIANT_NAMES = {breakthrough:'Прорыв',antidraughts:'Поддавки',three_check:'Три шаха',standard:'Классические',default:'Основной'};
+    const CHECKERS_TYPE_NAMES = {international:'Международные',russian:'Русские'};
+    const CLOCK_NAMES = {bd:'Bronstein',sdel:'Simple Delay',hg:'Hourglass',sd:'Sudden Death',nt:'Без таймера'};
+    const ALLOWED_VARIANTS = {checkers:['breakthrough','standard','antidraughts'],chess:['three_check','standard'],quoridouble:['default'],hexagon:['default']};
+    let rows = [], fileLabel = '', loadMode = 'none';
+    const timelineDetails = new Map();
+    let activeDateButton = null, tooltipPinned = false;
+    function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function parseCSV(input) {
+      const s = input.replace(/^\uFEFF/,''); let data=[], record=[], value='', quoted=false;
+      for (let i=0;i<s.length;i++) {
+        const c=s[i];
+        if (quoted) { if(c==='"' && s[i+1]==='"') {value+='"';i++;} else if(c==='"') quoted=false; else value+=c; }
+        else if(c==='"') { if(value!=='') throw Error('Некорректная кавычка в CSV'); quoted=true; }
+        else if(c===',') {record.push(value);value='';}
+        else if(c==='\n' || c==='\r') { if(c==='\r' && s[i+1]==='\n')i++;record.push(value);if(record.some(x=>x!==''))data.push(record);record=[];value=''; }
+        else value+=c;
+      }
+      if(quoted)throw Error('Незакрытая кавычка в CSV');
+      record.push(value);if(record.some(x=>x!==''))data.push(record);
+      if(!data.length)throw Error('CSV пуст');
+      const header=data.shift().map(x=>x.trim());
+      if(new Set(header).size!==header.length)throw Error('Повторяющиеся названия столбцов');
+      for(const key of REQUIRED)if(!header.includes(key))throw Error('Нет обязательного столбца: '+key);
+      return data.map((cells,i)=>{if(cells.length!==header.length)throw Error('Строка '+(i+2)+': ожидалось '+header.length+' столбцов, получено '+cells.length);return Object.fromEntries(header.map((h,j)=>[h,cells[j].trim()]));});
+    }
+    function validDate(s) { if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T00:00:00Z');return !isNaN(d) && d.toISOString().slice(0,10)===s; }
+    function validate(data) {
+      const ids=new Set();
+      for(let i=0;i<data.length;i++){
+        const r=data[i], at='Строка '+(i+2)+': ';
+        if(!r.id || ids.has(r.id))throw Error(at+'id пуст или повторяется');ids.add(r.id);
+        if(!validDate(r.date))throw Error(at+'некорректная дата');
+        if(!ALLOWED_VARIANTS[r.game]?.includes(r.variant))throw Error(at+'неизвестная игра / вариант');
+        if(r.game==='checkers'?!CHECKERS_TYPE_NAMES[r.checkers_type]:r.checkers_type!=='')throw Error(at+'некорректный тип шашек');
+        if(!['','time'].includes(r.ending))throw Error(at+'неизвестная отметка окончания');
+        if(r.clock_type==='nt'&&r.ending==='time')throw Error(at+'окончание по времени без таймера');
+        if(!['lekha','papa','draw'].includes(r.winner))throw Error(at+'неизвестный победитель');
+        if(r.clock_type && !CLOCK_NAMES[r.clock_type])throw Error(at+'неизвестный тип часов');
+        if(r.time_control_raw && (!/^\d+\+\d+$/.test(r.time_control_raw)||r.clock_type||!['checkers','chess'].includes(r.game)))throw Error(at+'некорректный исходный контроль времени');
+        if(r.game!=='checkers' && r.clock_type!=='nt' && !(r.game==='chess' && !r.clock_type && !!r.time_control_raw))throw Error(at+'неподдерживаемый режим часов для игры');
+        if(!['','w','b','wb','ч','б'].includes(r.side_mark))throw Error(at+'неизвестная отметка стороны');
+        if(!['true','false'].includes(r.papa_drunk))throw Error(at+'papa_drunk должен быть true или false');
+        if(!/^[1-9]\d*$/.test(r.count) || !Number.isSafeInteger(Number(r.count)))throw Error(at+'count должен быть целым положительным числом');
+        r.count=Number(r.count);
+        for(const k of ['base_seconds','delay_seconds']) if(r[k]!=='' && (!/^\d+$/.test(r[k]) || !Number.isSafeInteger(Number(r[k]))))throw Error(at+k+' должен быть целым числом секунд');
+        if((!r.clock_type || r.clock_type==='nt') && (r.base_seconds!=='' || r.delay_seconds!==''))throw Error(at+'для отсутствующего таймера время должно быть пустым');
+        if(r.clock_type && r.clock_type!=='nt' && (r.base_seconds==='' || (Number(r.base_seconds)<1 && !(r.clock_type==='bd' && Number(r.delay_seconds)>0))))throw Error(at+'для таймера нужно положительное base_seconds');
+        if(['bd','sdel'].includes(r.clock_type) && r.delay_seconds==='')throw Error(at+'нужно delay_seconds для delay-таймера');
+        if(['hg','sd'].includes(r.clock_type) && r.delay_seconds!=='')throw Error(at+'для Hourglass / Sudden Death delay_seconds оставляют пустым');
+        if(r.base_seconds!=='')r.base_seconds=Number(r.base_seconds);
+        if(r.delay_seconds!=='')r.delay_seconds=Number(r.delay_seconds);
+      }
+      return data;
+    }
+    const sum=(items,who)=>items.reduce((s,r)=>s+(who && r.winner!==who?0:r.count),0);
+    const percent=(v,total)=>total?Math.round(v*1000/total)/10:0;
+    const dateLabel=s=>s.slice(8,10)+'.'+s.slice(5,7)+'.'+s.slice(0,4);
+    const fmtClock=r=>!r.clock_type?(r.time_control_raw?r.time_control_raw+' (система не указана)':'Не указан'):r.clock_type==='nt'?'Без таймера':CLOCK_NAMES[r.clock_type]+' · '+Math.floor(r.base_seconds/60)+':'+String(r.base_seconds%60).padStart(2,'0')+(['bd','sdel'].includes(r.clock_type)?' + '+r.delay_seconds+' с':'');
+    const gameLabel=r=>GAME_NAMES[r.game]+' · '+VARIANT_NAMES[r.variant]+(r.game==='checkers'?' · '+CHECKERS_TYPE_NAMES[r.checkers_type]:'');
+    const winnerLabel=v=>({lekha:'Лёха',papa:'Папа',draw:'Ничья'})[v];
+    const plural=(n,one,few,many)=>n%10===1&&n%100!==11?one:n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?few:many;
+    function clockDescription(r){
+      if(!r.clock_type)return r.time_control_raw?'контроль '+r.time_control_raw+'; система часов не указана':'таймер не указан';
+      if(r.clock_type==='nt')return 'без таймера';
+      const time=r.base_seconds<60?r.base_seconds+' с':r.base_seconds%60===0?r.base_seconds/60+' мин':Math.floor(r.base_seconds/60)+' мин '+r.base_seconds%60+' с';
+      return 'таймер '+CLOCK_NAMES[r.clock_type]+': '+time+(['bd','sdel'].includes(r.clock_type)?', задержка '+r.delay_seconds+' с':'');
+    }
+    function entryDescription(r){
+      const game=r.game==='checkers'?(r.variant==='breakthrough'?'Шашки «Прорыв»':r.variant==='antidraughts'?'Поддавки':'Классические шашки')+' ('+CHECKERS_TYPE_NAMES[r.checkers_type].toLowerCase()+')':r.game==='chess'?'Шахматы «'+VARIANT_NAMES[r.variant]+'»':GAME_NAMES[r.game];
+      const result=r.winner==='draw'?(r.count===1?'ничья':'все партии завершились вничью'):r.count===1?'победитель — '+winnerLabel(r.winner):'все партии выиграл '+winnerLabel(r.winner);
+      const side=({w:'белые (w)',b:'чёрные (b)',wb:'wb (как в источнике)','ч':'ч (как в источнике)','б':'б (как в источнике)'})[r.side_mark];
+      const extra=[clockDescription(r),r.ending==='time'?'завершение по времени':null,side?'отметка стороны: '+side+'; игрок не указан':null,r.papa_drunk==='true'?'пометка «п» (папа выпивший)':null,r.notes?'примечание: '+r.notes:null].filter(Boolean);
+      return '<li><strong>'+esc(game)+'</strong> — '+r.count+' '+plural(r.count,'партия','партии','партий')+', '+esc(result)+'. <span class="muted">'+extra.map(esc).join(' · ')+'</span></li>';
+    }
+
+    function setStatus(msg,error=false){$('status').textContent=msg;$('status').className='state'+(error?' error':'');}
+    function loadCSV(text,name,mode){try{const next=validate(parseCSV(text));rows=next;fileLabel=name;loadMode=mode;refreshGameOptions();refreshVariantOptions();refreshCheckersTypeOptions();render();setStatus('Загружен '+name+' · '+rows.length+' строк / '+sum(rows)+' партий · '+(mode==='auto'?'автоматическая загрузка':'выбранный файл'));}catch(err){setStatus('Не удалось прочитать CSV: '+err.message,true);}}
+    function refreshGameOptions(){const current='chess';const games=[...new Set(rows.map(r=>r.game))];$('gameFilter').innerHTML='<option value="all">Все игры</option>'+games.map(g=>'<option value="'+esc(g)+'">'+esc(GAME_NAMES[g])+'</option>').join('');$('gameFilter').value=games.includes(current)?current:'all';}
+    function refreshVariantOptions(){const current=$('variantFilter').value;const game='chess';const variants=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.variant))];$('variantFilter').innerHTML='<option value="all">Все варианты</option>'+variants.map(v=>'<option value="'+esc(v)+'">'+esc(VARIANT_NAMES[v])+'</option>').join('');$('variantFilter').value=variants.includes(current)?current:'all';}
+    function refreshCheckersTypeOptions(){const current=$('checkersTypeFilter').value;const game='chess';const types=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.checkers_type).filter(Boolean))];$('checkersTypeFilter').innerHTML='<option value="all">Все типы</option>'+types.map(v=>'<option value="'+esc(v)+'">'+esc(CHECKERS_TYPE_NAMES[v])+'</option>').join('');$('checkersTypeFilter').value=types.includes(current)?current:'all';}
+    function selected(){return rows.filter(r=>r.game==='chess' && ($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('checkersTypeFilter').value==='all'||r.checkers_type===$('checkersTypeFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||r.clock_type===$('clockFilter').value||($('clockFilter').value==='unknown'&&!r.clock_type))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&($('endingFilter').value==='all'||r.ending===$('endingFilter').value||($('endingFilter').value==='unspecified'&&!r.ending))&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
+    function portions(l,p,d,total){if(!total)return '';return '<span class="l" style="width:'+percent(l,total)+'%"></span><span class="p" style="width:'+percent(p,total)+'%"></span><span class="d" style="width:'+percent(d,total)+'%"></span>';}
+    function render(){const a=selected(),total=sum(a),l=sum(a,'lekha'),p=sum(a,'papa'),d=sum(a,'draw');$('total').textContent=total;$('groups').textContent=a.length+' строк источника';$('lekhaWins').textContent=l;$('papaWins').textContent=p;$('draws').textContent=d;$('lekhaRate').textContent=percent(l,total)+'% от всех партий';$('papaRate').textContent=percent(p,total)+'% от всех партий';const dates=a.map(x=>x.date).sort();$('period').textContent=dates.length?dateLabel(dates[0])+' — '+dateLabel(dates.at(-1)):'Нет данных';renderGames(a);renderClocks(a);renderSides(a);renderTimeline(a);renderTable(a);}
+    function resultSummary(t,l,p,d){return '<span class="numbers"><span class="result-stat">Всего: <strong>'+t+'</strong></span><span class="result-stat color-lekha">Лёха: '+l+'</span><span class="result-stat color-papa">Папа: '+p+'</span>'+(d?'<span class="result-stat">Ничьи: '+d+'</span>':'')+'</span>';}
+    function renderGames(a){const grouped=new Map();for(const r of a){const key=r.game+'|'+r.variant+'|'+r.checkers_type;if(!grouped.has(key))grouped.set(key,{r,rows:[]});grouped.get(key).rows.push(r);}const items=[...grouped.values()].sort((x,y)=>sum(y.rows)-sum(x.rows));$('gamesBreakdown').innerHTML=items.map(({r,rows:rs})=>{const t=sum(rs),l=sum(rs,'lekha'),p=sum(rs,'papa'),d=sum(rs,'draw');return '<div><div class="item-head"><span class="name">'+esc(gameLabel(r))+'</span>'+resultSummary(t,l,p,d)+'</div><div class="mini-track">'+portions(l,p,d,t)+'</div></div>';}).join('')||'<div class="blank">Нет партий для выбранных фильтров.</div>';}
+    function renderClocks(a){
+      const fresh=()=>({lekha:0,papa:0,draw:0});
+      const add=(bucket,r)=>{bucket[r.winner]+=r.count;};
+      const total=bucket=>bucket.lekha+bucket.papa+bucket.draw;
+      const allNoTimer=fresh(), checkersNoTimer=fresh(), timed=new Map();
+      for(const r of a){
+        if(!r.clock_type && !r.time_control_raw)continue;
+        if(r.clock_type==='nt'){
+          add(allNoTimer,r);
+          if(r.game==='checkers')add(checkersNoTimer,r);
+        }else{
+          const name=GAME_NAMES[r.game]+' · '+fmtClock(r);
+          if(!timed.has(name))timed.set(name,fresh());
+          add(timed.get(name),r);
+        }
+      }
+      // These first two categories intentionally overlap: the second is a subset of the first.
+      const items=[];
+      if(total(allNoTimer))items.push(['Шахматы без таймера',allNoTimer]);
+      if(total(checkersNoTimer))items.push(['Шашки без таймера',checkersNoTimer]);
+      items.push(...[...timed].sort((a,b)=>total(b[1])-total(a[1])));
+      $('clocksBreakdown').innerHTML=items.map(([name,x])=>{
+        const t=total(x);
+        return '<div><div class="item-head"><span class="name">'+esc(name)+'</span>'+
+          resultSummary(t,x.lekha,x.papa,x.draw)+'</div>'+
+          '<div class="mini-track" role="img" aria-label="'+esc(name)+': всего '+t+', победы Лёхи '+x.lekha+', папы '+x.papa+', ничьи '+x.draw+'">'+
+          portions(x.lekha,x.papa,x.draw,t)+'</div></div>';
+      }).join('')||'<div class="blank">Нет данных о режиме таймера для выбранных фильтров.</div>';
+    }
+
+    function renderSides(a){
+      const names={w:'Белые · w',b:'Чёрные · b','ч':'Чёрные · ч','б':'Белые · б',wb:'wb · неоднозначно','':'Цвет не указан'};
+      const items=new Map();
+      for(const r of a){const k=r.side_mark;if(!items.has(k))items.set(k,{lekha:0,papa:0,draw:0});items.get(k)[r.winner]+=r.count;}
+      $('chessSides').innerHTML=[...items].sort((a,b)=>(b[1].lekha+b[1].papa+b[1].draw)-(a[1].lekha+a[1].papa+a[1].draw)).map(([k,x])=>{
+        const t=x.lekha+x.papa+x.draw,label=names[k]||k;
+        return '<div><div class="item-head"><span class="name">'+esc(label)+'</span>'+resultSummary(t,x.lekha,x.papa,x.draw)+'</div><div class="mini-track">'+portions(x.lekha,x.papa,x.draw,t)+'</div></div>';
+      }).join('')||'<div class="blank">Нет шахматных партий.</div>';
+    }
+    function renderTimeline(a){
+      hideDateTooltip();
+      timelineDetails.clear();
+      const days=new Map();
+      for(const r of a){
+        if(!days.has(r.date))days.set(r.date,{lekha:0,papa:0,draw:0,records:[]});
+        const day=days.get(r.date);
+        day[r.winner]+=r.count;
+        day.records.push(r);
+      }
+      const items=[...days].sort(([x],[y])=>y.localeCompare(x));
+      const max=Math.max(...items.map(([,x])=>x.lekha+x.papa+x.draw),1);
+      $('timeline').innerHTML=items.map(([date,x])=>{
+        const n=x.lekha+x.papa+x.draw, label=dateLabel(date);
+        timelineDetails.set(date,'<strong>'+esc(label)+' · '+n+' '+plural(n,'партия','партии','партий')+'</strong>'+
+          '<div class="muted">Лёха: '+x.lekha+' · Папа: '+x.papa+' · Ничьи: '+x.draw+'</div><ul>'+x.records.map(entryDescription).join('')+'</ul>');
+        return '<div class="date-entry"><button type="button" class="date-row" data-date="'+esc(date)+'" aria-controls="timelineTooltip" aria-expanded="false" aria-label="Подробности за '+esc(label)+'">'+
+          '<span class="date-name">'+esc(label.slice(0,5))+'</span><span class="date-track">'+portions(x.lekha,x.papa,x.draw,max)+'</span>'+
+          '<span class="date-num">'+x.lekha+' / '+x.papa+(x.draw?' / '+x.draw:'')+'</span></button></div>';
+      }).join('')||'<div class="blank">Нет данных.</div>';
+    }
+    function positionDateTooltip(button){
+      const tooltip=$('timelineTooltip'), rect=button.getBoundingClientRect(), margin=12, gap=8;
+      const width=tooltip.offsetWidth, height=tooltip.offsetHeight;
+      const x=Math.max(margin,Math.min(rect.right-width,window.innerWidth-width-margin));
+      // Prefer above the row, keeping the following dates visible.
+      const y=rect.top-height-gap>=margin?rect.top-height-gap:
+        Math.max(margin,Math.min(rect.bottom+gap,window.innerHeight-height-margin));
+      tooltip.style.left=x+'px';
+      tooltip.style.top=y+'px';
+    }
+    function hideDateTooltip(){
+      const tooltip=$('timelineTooltip');
+      if(activeDateButton){
+        activeDateButton.setAttribute('aria-expanded','false');
+        activeDateButton.removeAttribute('aria-describedby');
+        activeDateButton.closest('.date-entry').classList.remove('is-active');
+      }
+      tooltip.hidden=true;
+      tooltip.classList.remove('is-pinned');
+      activeDateButton=null;
+      tooltipPinned=false;
+    }
+    function showDateTooltip(button,pin=false){
+      if(activeDateButton!==button){
+        hideDateTooltip();
+        const detail=timelineDetails.get(button.dataset.date);
+        if(!detail)return;
+        $('timelineTooltip').innerHTML=detail;
+        activeDateButton=button;
+        button.closest('.date-entry').classList.add('is-active');
+        button.setAttribute('aria-expanded','true');
+        button.setAttribute('aria-describedby','timelineTooltip');
+      }
+      tooltipPinned=pin;
+      const tooltip=$('timelineTooltip');
+      tooltip.classList.toggle('is-pinned',pin);
+      tooltip.hidden=false;
+      positionDateTooltip(button);
+    }
+    function renderTable(a){const sorted=[...a].sort((x,y)=>y.date.localeCompare(x.date)||y.id.localeCompare(x.id));$('tableCount').textContent=sorted.length+' строк / '+sum(a)+' партий';$('gamesTable').innerHTML=sorted.map(r=>'<tr><td class="nobr">'+esc(dateLabel(r.date))+'</td><td>'+esc(gameLabel(r))+'</td><td><span class="tag '+esc(r.winner==='lekha'?'':r.winner==='papa'?'papa':'draw')+'">'+esc(winnerLabel(r.winner))+'</span>'+(r.ending==='time'?'<div class="flag">Время истекло</div>':'')+(r.papa_drunk==='true'?'<div class="flag" title="В источнике есть пометка п">Пометка «п»</div>':'')+'</td><td class="nobr">'+esc(fmtClock(r))+'</td><td>'+esc(r.side_mark||'—')+'</td><td>'+r.count+'</td><td class="nobr muted" title="'+esc(r.notes||'')+'">'+esc(r.source_entry||'—')+'</td></tr>').join('')||'<tr><td colspan="7" class="blank">Нет совпадений. Сбросьте фильтры.</td></tr>';}
+    $('timeline').addEventListener('pointermove',e=>{
+      if(e.pointerType==='touch'||tooltipPinned)return;
+      const button=e.target.closest('button.date-row');
+      if(button&&$('timeline').contains(button)){if(activeDateButton!==button)showDateTooltip(button);}
+      else hideDateTooltip();
+    });
+    $('timeline').addEventListener('pointerleave',()=>{if(!tooltipPinned)hideDateTooltip();});
+    $('timeline').addEventListener('focusin',e=>{
+      const button=e.target.closest('button.date-row');
+      if(button&&!tooltipPinned)showDateTooltip(button);
+    });
+    $('timeline').addEventListener('focusout',e=>{
+      if(!tooltipPinned&&!$('timeline').contains(e.relatedTarget))hideDateTooltip();
+    });
+    $('timeline').addEventListener('click',e=>{
+      const button=e.target.closest('button.date-row');
+      if(!button||!$('timeline').contains(button))return;
+      if(tooltipPinned&&activeDateButton===button)hideDateTooltip();
+      else showDateTooltip(button,true);
+    });
+    document.addEventListener('click',e=>{
+      if(tooltipPinned&&!$('timeline').contains(e.target)&&!$('timelineTooltip').contains(e.target))hideDateTooltip();
+    });
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')hideDateTooltip();});
+    window.addEventListener('scroll',()=>{if(activeDateButton){if(tooltipPinned)positionDateTooltip(activeDateButton);else hideDateTooltip();}},{passive:true});
+    window.addEventListener('resize',()=>{if(activeDateButton)positionDateTooltip(activeDateButton);});
+
+    for(const id of ['variantFilter','checkersTypeFilter','winnerFilter','clockFilter','flagFilter','endingFilter','dateFrom','dateTo'])$(id).addEventListener('change',render);
+    $('gameFilter').addEventListener('change',()=>{refreshVariantOptions();refreshCheckersTypeOptions();render();});
+    $('resetButton').addEventListener('click',()=>{for(const id of ['gameFilter','checkersTypeFilter','winnerFilter','clockFilter','flagFilter','endingFilter'])$(id).value='all';refreshVariantOptions();$('variantFilter').value='all';$('dateFrom').value='';$('dateTo').value='';render();});
+    $('csvFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;loadCSV(await f.text(),f.name,'manual');e.target.value='';});
+    async function autoLoad(){if(!/^https?:$/.test(location.protocol)){setStatus('Локальный файл: нажми «Загрузить CSV» и выбери games.csv из той же папки. Браузер не разрешает HTML автоматически читать соседние файлы.');return;}try{const response=await fetch('./games.csv',{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);loadCSV(await response.text(),'games.csv','auto');}catch(e){setStatus('Автозагрузка недоступна ('+e.message+'). Выбери games.csv кнопкой «Загрузить CSV».',true);}}
+    $('retryButton').addEventListener('click',()=>{if(loadMode==='auto')autoLoad();else if(/^https?:$/.test(location.protocol))autoLoad();else $('csvFile').click();});
+    autoLoad();
+  </script>
+</body>
+</html>
