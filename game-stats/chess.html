@@ -114,8 +114,8 @@
 <body>
   <main class="wrap">
     <header>
-      <div><div class="eyebrow">Personal Lab · Game stats</div><h1>Шахматы<span style="color:var(--lekha)">.</span></h1><p class="sub">Шахматные партии Лёхи и папы: варианты, результаты, контроль времени и цвета.</p></div>
-      <div class="tools"><a class="file-button" href="./index.html">Все игры</a><label class="file-button" for="csvFile">↥ Загрузить CSV<input id="csvFile" type="file" accept=".csv,text/csv"></label><button id="retryButton" type="button">↻ Обновить</button></div>
+      <div><div class="eyebrow">Personal Lab · Game stats</div><h1>Шахматы<span style="color:var(--lekha)">.</span></h1><p class="sub">Только обычные шахматы: результаты, контроль времени и цвета. Старый вариант «Три шаха» остался в общей статистике.</p></div>
+      <div class="tools"><a class="file-button" href="./index.html">Все игры</a><a class="file-button" href="./index.html?view=checkers">⛀ Шашки</a><label class="file-button" for="csvFile">↥ Загрузить CSV<input id="csvFile" type="file" accept=".csv,text/csv"></label><button id="retryButton" type="button">↻ Обновить</button></div>
     </header>
     <div id="status" role="status" class="state">Загрузка данных…</div>
     <div id="chessHighlights" class="chess-highlights" aria-label="Краткая шахматная статистика"></div>
@@ -123,7 +123,7 @@
       <summary>⚙ Фильтры <span id="filterSummary" class="filter-summary">· Все записи</span></summary>
       <section class="panel filters" aria-label="Фильтры">
       <div class="filter" style="display:none"><label for="gameFilter">Игра</label><select id="gameFilter"><option value="all">Все игры</option></select></div>
-      <div class="filter"><label for="variantFilter">Вариант</label><select id="variantFilter"><option value="all">Все варианты</option></select></div>
+      <div class="filter" style="display:none"><label for="variantFilter">Вариант</label><select id="variantFilter"><option value="all">Все варианты</option></select></div>
       <div class="filter" style="display:none"><label for="checkersTypeFilter">Тип шашек</label><select id="checkersTypeFilter"><option value="all">Все типы</option></select></div>
       <div class="filter"><label for="winnerFilter">Победитель</label><select id="winnerFilter"><option value="all">Все результаты</option><option value="lekha">Лёха</option><option value="papa">Папа</option><option value="draw">Ничья</option></select></div>
       <div class="filter"><label for="clockFilter">Система часов</label><select id="clockFilter"><option value="all">Все системы</option><option value="bd">Bronstein</option><option value="sdel">Simple Delay</option><option value="hg">Hourglass</option><option value="sd">Sudden Death</option><option value="nt">Без таймера</option><option value="unknown">Не указана</option></select></div>
@@ -229,20 +229,21 @@
     }
 
     function setStatus(msg,error=false){$('status').textContent=msg;$('status').className='state'+(error?' error':'');}
-    function loadCSV(text,name,mode){try{const next=validate(parseCSV(text));rows=next;fileLabel=name;loadMode=mode;refreshGameOptions();refreshVariantOptions();refreshCheckersTypeOptions();render();const lastDate=rows.reduce((max,r)=>r.date>max?r.date:max,'');
-      const info=['Загружен '+name,rows.length+' строк / '+sum(rows)+' партий'];
+    function loadCSV(text,name,mode){try{const next=validate(parseCSV(text));rows=next;fileLabel=name;loadMode=mode;refreshGameOptions();refreshVariantOptions();refreshCheckersTypeOptions();render();const normalRows=rows.filter(r=>r.game==='chess'&&r.variant==='standard');
+      const lastDate=normalRows.reduce((max,r)=>r.date>max?r.date:max,'');
+      const info=['Загружен '+name,normalRows.length+' строк / '+sum(normalRows)+' обычных шахматных партий'];
       if(lastDate)info.push('данные по '+dateLabel(lastDate));
       const updated=Date.parse(CSV_UPDATED_AT);
       if(mode==='auto' && Number.isFinite(updated))info.push('CSV обновлён '+formatStamp(new Date(updated),'Europe/Kyiv')+' (Киев)');
       info.push('файл загружен '+formatStamp(new Date()));
       setStatus(info.join(' · '));}catch(err){setStatus('Не удалось прочитать CSV: '+err.message,true);}}
     function refreshGameOptions(){const current='chess';const games=[...new Set(rows.map(r=>r.game))];$('gameFilter').innerHTML='<option value="all">Все игры</option>'+games.map(g=>'<option value="'+esc(g)+'">'+esc(GAME_NAMES[g])+'</option>').join('');$('gameFilter').value=games.includes(current)?current:'all';}
-    function refreshVariantOptions(){const current=$('variantFilter').value;const game='chess';const variants=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.variant))];$('variantFilter').innerHTML='<option value="all">Все варианты</option>'+variants.map(v=>'<option value="'+esc(v)+'">'+esc(VARIANT_NAMES[v])+'</option>').join('');$('variantFilter').value=variants.includes(current)?current:'all';}
+    function refreshVariantOptions(){const current=$('variantFilter').value;const game='chess';const variants=[...new Set(rows.filter(r=>(game==='all'||r.game===game)&&r.variant==='standard').map(r=>r.variant))];$('variantFilter').innerHTML='<option value="all">Все варианты</option>'+variants.map(v=>'<option value="'+esc(v)+'">'+esc(VARIANT_NAMES[v])+'</option>').join('');$('variantFilter').value=variants.includes(current)?current:'all';}
     function refreshCheckersTypeOptions(){const current=$('checkersTypeFilter').value;const game='chess';const types=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.checkers_type).filter(Boolean))];$('checkersTypeFilter').innerHTML='<option value="all">Все типы</option>'+types.map(v=>'<option value="'+esc(v)+'">'+esc(CHECKERS_TYPE_NAMES[v])+'</option>').join('');$('checkersTypeFilter').value=types.includes(current)?current:'all';}
-    function selected(){return rows.filter(r=>r.game==='chess' && ($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('checkersTypeFilter').value==='all'||r.checkers_type===$('checkersTypeFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||r.clock_type===$('clockFilter').value||($('clockFilter').value==='unknown'&&!r.clock_type))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&($('endingFilter').value==='all'||r.ending===$('endingFilter').value||($('endingFilter').value==='unspecified'&&!r.ending))&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
+    function selected(){return rows.filter(r=>r.game==='chess' && r.variant==='standard' && ($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('checkersTypeFilter').value==='all'||r.checkers_type===$('checkersTypeFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||r.clock_type===$('clockFilter').value||($('clockFilter').value==='unknown'&&!r.clock_type))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&($('endingFilter').value==='all'||r.ending===$('endingFilter').value||($('endingFilter').value==='unspecified'&&!r.ending))&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
     function portions(l,p,d,total){if(!total)return '';return '<span class="l" style="width:'+percent(l,total)+'%"></span><span class="p" style="width:'+percent(p,total)+'%"></span><span class="d" style="width:'+percent(d,total)+'%"></span>';}
     function updateFilterSummary(){
-      const ids=['variantFilter','winnerFilter','clockFilter','flagFilter','endingFilter','dateFrom','dateTo'];
+      const ids=['winnerFilter','clockFilter','flagFilter','endingFilter','dateFrom','dateTo'];
       const active=ids.filter(id=>$(id).value && $(id).value!=='all').length;
       $('filterSummary').textContent=active?'· Активно: '+active:'· Все записи';
     }
@@ -278,7 +279,7 @@
         '<span class="chess-total">Всего <strong>'+total+'</strong></span></div>'+
         '<div class="chess-score-grid">'+score('Лёха',lekha,'color-lekha')+
         score('Папа',papa,'color-papa')+score('Ничьи',draws,'')+'</div>'+
-        '<div class="mini-track chess-main-bar" role="img" aria-label="Все шахматные партии: Лёха '+lekha+', Папа '+papa+', ничьи '+draws+'">'+
+        '<div class="mini-track chess-main-bar" role="img" aria-label="Обычные шахматы: Лёха '+lekha+', Папа '+papa+', ничьи '+draws+'">'+
         portions(lekha,papa,draws,total)+'</div>'+
         '<h3>По вариантам</h3><div class="stack chess-insight-stack">'+breakdown(variants)+'</div>'+link+'</section>'+
         '<section class="panel chess-insight"><div class="chess-head"><h2>⏱ Контроль времени</h2>'+

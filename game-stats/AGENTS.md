@@ -20,3 +20,9 @@ These instructions do **not** authorize direct commits for other folders or repo
 - The GitHub Pages deployment inserts the last **CSV commit timestamp** (not the page-view time) into both HTML pages. Show this as `CSV обновлён` in the `Europe/Kyiv` timezone only for automatically loaded deployment data.
 - Also show the latest result date from the CSV and the time the browser loaded the file. Never conflate those times.
 - Keep the published site static, without a separate backend or scheduled source-sync job.
+
+## Dedicated game views
+- Overall dashboard: `index.html`; it includes all game records, **including old chess Three-check games**.
+- Chess-specific views and summary panels must use `game=chess AND variant=standard` only. Historical `three_check` remains unchanged in CSV and visible in overall statistics, but never enters the current chess duel, chess timers, or chess detail timeline.
+- Checkers-specific view is `index.html?view=checkers`, using the same deployed HTML/CSV; this avoids modifying the deployment workflow outside the authorized folder. Include every checkers variant in checkers-only views.
+- On the overview page, both checkers and current-chess summary cards are independent of global filters; dedicated views respond to their own filters.
