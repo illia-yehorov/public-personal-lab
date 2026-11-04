@@ -105,6 +105,26 @@
     .filter-disclosure[open] > summary::after { transform:rotate(180deg); }
     .filter-summary { font-weight:400; color:var(--muted); margin-left:6px; }
     .filter-disclosure .filters { margin:10px 0 0; }
+
+    /* One period switch drives every dashboard and its trend chart. */
+    .period-controls { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+    .period-info { display:grid; gap:3px; }
+    .period-info strong { font-size:.85rem; }
+    .period-info span { font-size:.75rem; color:var(--muted); }
+    .period-switch { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border:1px solid var(--line); background:var(--surface); border-radius:12px; }
+    .period-switch button { padding:9px 13px; border:0; border-radius:8px; background:transparent; color:var(--muted); font-size:.82rem; }
+    .period-switch button[aria-pressed="true"] { background:var(--lekha); color:#08251f; }
+    .period-switch button:hover:not([aria-pressed="true"]) { background:var(--surface2); color:var(--text); }
+    .trend-panel { margin-bottom:20px; }
+    .trend-head { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .trend-head h2 { margin:0 0 5px; }
+    .trend-legend { display:flex; gap:15px; align-items:center; flex-wrap:wrap; font-size:.8rem; color:var(--muted); }
+    .trend-legend span { display:inline-flex; align-items:center; gap:6px; }
+    .trend-legend i { width:10px; height:10px; border-radius:50%; display:inline-block; }
+    .trend-chart { overflow-x:auto; margin-top:12px; padding-bottom:4px; }
+    .trend-chart svg { display:block; max-width:none; font-family:inherit; }
+    .trend-meta { margin:9px 0 0; font-size:.76rem; color:var(--muted); line-height:1.5; }
+    @media(max-width:520px) { .period-switch { width:100%; } .period-switch button { flex:1; padding:10px 6px; } }
     /* Checkers is a dedicated route of index.html so the existing Pages workflow stays unchanged. */
     .checkers-only { display:none; }
     .checkers-view .general-only { display:none !important; }
@@ -127,6 +147,14 @@
       <div class="tools"><a class="file-button checkers-only" href="./index.html">Все игры</a><a class="file-button" href="./chess.html">♞ Шахматы</a><a class="file-button general-only" href="./index.html?view=checkers">⛀ Шашки</a><label class="file-button" for="csvFile">↥ Загрузить CSV<input id="csvFile" type="file" accept=".csv,text/csv"></label><button id="retryButton" type="button">↻ Обновить</button></div>
     </header>
     <div id="status" role="status" class="state">Загрузка данных…</div>
+    <div class="period-controls">
+      <div class="period-info"><strong>Период статистики</strong><span id="periodDescription">Вся история</span></div>
+      <div class="period-switch" role="group" aria-label="Период статистики">
+        <button type="button" data-period="7" aria-pressed="false">7 дней</button>
+        <button type="button" data-period="14" aria-pressed="false">14 дней</button>
+        <button type="button" data-period="all" aria-pressed="true">Всё время</button>
+      </div>
+    </div>
     <div id="chessHighlights" class="chess-highlights general-only" aria-label="Краткая шахматная статистика"></div>
     <div id="checkersHighlights" class="chess-highlights" aria-label="Краткая статистика шашек"></div>
     <details class="filter-disclosure">
@@ -149,6 +177,14 @@
       <div class="panel kpi"><span>Победы Лёхи</span><strong id="lekhaWins" class="color-lekha">—</strong><small id="lekhaRate">—</small></div>
       <div class="panel kpi"><span>Победы папы</span><strong id="papaWins" class="color-papa">—</strong><small id="papaRate">—</small></div>
       <div class="panel kpi"><span>Ничьи</span><strong id="draws">—</strong><small id="period">—</small></div>
+    </section>
+    <section class="panel trend-panel" aria-label="График динамики побед">
+      <div class="trend-head">
+        <div><h2>Динамика побед</h2><p class="hint" id="trendSubtitle" style="margin:0">Доля побед по неделям</p></div>
+        <div class="trend-legend" aria-label="Легенда"><span><i style="background:var(--lekha)"></i>Лёха</span><span><i style="background:var(--papa)"></i>Папа</span></div>
+      </div>
+      <div id="trendChart" class="trend-chart"></div>
+      <p id="trendMeta" class="trend-meta"></p>
     </section>
     <div class="layout general-only">
       <section class="panel"><h2>Результаты по видам игр</h2><div id="gamesBreakdown" class="stack"></div></section>
@@ -188,6 +224,107 @@
     const timelineDetails = new Map();
     let activeDateButton = null, tooltipPinned = false;
     function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    let activePeriod = 'all';
+    function kyivToday() {
+      const parts = new Intl.DateTimeFormat('en-US', {timeZone:'Europe/Kyiv',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+      const values = Object.fromEntries(parts.map(part=>[part.type,part.value]));
+      return values.year+'-'+values.month+'-'+values.day;
+    }
+    function shiftISO(date, days) {
+      const utc = new Date(date+'T00:00:00Z');
+      utc.setUTCDate(utc.getUTCDate()+days);
+      return utc.toISOString().slice(0,10);
+    }
+    function weekStart(date) {
+      const day = new Date(date+'T00:00:00Z').getUTCDay();
+      return shiftISO(date, -((day+6)%7));
+    }
+    function periodBounds() {
+      const today=kyivToday();
+      return {today, from:activePeriod==='all'?null:shiftISO(today,1-Number(activePeriod))};
+    }
+    function inPeriod(r,bounds) {
+      return activePeriod==='all' || (r.date>=bounds.from && r.date<=bounds.today);
+    }
+    function renderPeriodControls() {
+      const bounds=periodBounds();
+      document.querySelectorAll('[data-period]').forEach(button=>{
+        button.setAttribute('aria-pressed',String(button.dataset.period===activePeriod));
+      });
+      $('periodDescription').textContent=activePeriod==='all'?'Вся история':
+        dateLabel(bounds.from)+' — '+dateLabel(bounds.today)+' · Киев';
+    }
+    function renderTrend(data) {
+      const bounds=periodBounds(), weekly=activePeriod==='all';
+      const total=sum(data);
+      $('trendSubtitle').textContent='Доля побед '+(weekly?'по календарным неделям':'по дням');
+      $('trendMeta').textContent=(weekly?'Неделя: понедельник — воскресенье. ':'')+
+        'Процент от всех партий за интервал, включая ничьи. n — число партий; пропуски означают, что игр не было.';
+      if(!total) {
+        $('trendChart').innerHTML='<div class="blank">В выбранном периоде нет партий. График появится после новых игр.</div>';
+        return;
+      }
+      let from=weekly?data.reduce((earliest,r)=>r.date<earliest?r.date:earliest,bounds.today):bounds.from;
+      let to=bounds.today;
+      if(weekly) { from=weekStart(from); to=weekStart(to); }
+      const step=weekly?7:1, buckets=[], map=new Map();
+      for(let day=from;day<=to;day=shiftISO(day,step)) {
+        const bucket={date:day,lekha:0,papa:0,draw:0};
+        buckets.push(bucket);
+        map.set(day,bucket);
+      }
+      for(const r of data) {
+        const key=weekly?weekStart(r.date):r.date;
+        if(map.has(key)) map.get(key)[r.winner]+=r.count;
+      }
+      const count=b=>b.lekha+b.papa+b.draw;
+      const width=Math.max(650,buckets.length*58+110), height=280;
+      const left=56,top=25,right=26,bottom=72;
+      const plotWidth=width-left-right,plotHeight=height-top-bottom;
+      const x=i=>left+(buckets.length===1?plotWidth/2:i*plotWidth/(buckets.length-1));
+      const y=pct=>top+(100-pct)*plotHeight/100;
+      const fraction=(b,winner)=>100*b[winner]/count(b);
+      const fmtNum=n=>(Math.round(n*10)/10).toLocaleString('ru-RU',{maximumFractionDigits:1});
+      let svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+
+        '" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Динамика процентов побед Лёхи и папы '+(weekly?'по неделям':'по дням')+'">';
+      for(const tick of [0,50,100]) {
+        const yy=y(tick);
+        svg+='<line x1="'+left+'" y1="'+yy+'" x2="'+(width-right)+'" y2="'+yy+
+          '" stroke="var(--line)" stroke-width="1" stroke-dasharray="'+(tick===0?'0':'4 5')+'"/>'+
+          '<text x="'+(left-12)+'" y="'+(yy+4)+'" text-anchor="end" font-size="12" fill="var(--muted)">'+tick+'%</text>';
+      }
+      const labelStep=buckets.length>14?Math.ceil(buckets.length/10):buckets.length>7?2:1;
+      buckets.forEach((b,i)=>{
+        if(i%labelStep!==0 && i!==buckets.length-1) return;
+        const xx=x(i),label=b.date.slice(8,10)+'.'+b.date.slice(5,7);
+        svg+='<text x="'+xx+'" y="'+(height-40)+'" text-anchor="middle" font-size="12" fill="var(--muted)">'+label+'</text>'+
+          '<text x="'+xx+'" y="'+(height-20)+'" text-anchor="middle" font-size="11" fill="var(--muted)">n='+count(b)+'</text>';
+      });
+      for(const [winner,color] of [['lekha','var(--lekha)'],['papa','var(--papa)']]) {
+        let segment='',paths=[];
+        buckets.forEach((b,i)=>{
+          if(!count(b)) {
+            if(segment)paths.push(segment);
+            segment='';
+            return;
+          }
+          segment+=(segment?' L':'M')+x(i).toFixed(1)+' '+y(fraction(b,winner)).toFixed(1);
+        });
+        if(segment)paths.push(segment);
+        svg+=paths.map(path=>'<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>').join('');
+        buckets.forEach((b,i)=>{
+          if(!count(b))return;
+          const share=fmtNum(fraction(b,winner)),label=weekly?'Неделя с ':'Дата ';
+          const title=label+dateLabel(b.date)+': '+count(b)+' партий; Лёха '+b.lekha+
+            ', Папа '+b.papa+', ничьи '+b.draw+'; '+(winner==='lekha'?'Лёха':'Папа')+' — '+share+'%';
+          svg+='<circle cx="'+x(i).toFixed(1)+'" cy="'+y(fraction(b,winner)).toFixed(1)+
+            '" r="5" fill="'+color+'" stroke="var(--surface)" stroke-width="2"><title>'+esc(title)+'</title></circle>';
+        });
+      }
+      svg+='</svg>';
+      $('trendChart').innerHTML=svg;
+    }
     function parseCSV(input) {
       const s = input.replace(/^\uFEFF/,''); let data=[], record=[], value='', quoted=false;
       for (let i=0;i<s.length;i++) {
@@ -268,7 +405,7 @@
     function refreshGameOptions(){const current=isCheckersView?'checkers':$('gameFilter').value;const games=[...new Set(rows.map(r=>r.game))];$('gameFilter').innerHTML='<option value="all">Все игры</option>'+games.map(g=>'<option value="'+esc(g)+'">'+esc(GAME_NAMES[g])+'</option>').join('');$('gameFilter').value=games.includes(current)?current:'all';}
     function refreshVariantOptions(){const current=$('variantFilter').value;const game=$('gameFilter').value;const variants=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.variant))];$('variantFilter').innerHTML='<option value="all">Все варианты</option>'+variants.map(v=>'<option value="'+esc(v)+'">'+esc(VARIANT_NAMES[v])+'</option>').join('');$('variantFilter').value=variants.includes(current)?current:'all';}
     function refreshCheckersTypeOptions(){const current=$('checkersTypeFilter').value;const game=$('gameFilter').value;const types=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.checkers_type).filter(Boolean))];$('checkersTypeFilter').innerHTML='<option value="all">Все типы</option>'+types.map(v=>'<option value="'+esc(v)+'">'+esc(CHECKERS_TYPE_NAMES[v])+'</option>').join('');$('checkersTypeFilter').value=types.includes(current)?current:'all';}
-    function selected(){return rows.filter(r=>(!isCheckersView||r.game==='checkers')&&($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('checkersTypeFilter').value==='all'||r.checkers_type===$('checkersTypeFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||r.clock_type===$('clockFilter').value||($('clockFilter').value==='unknown'&&!r.clock_type))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&($('endingFilter').value==='all'||r.ending===$('endingFilter').value||($('endingFilter').value==='unspecified'&&!r.ending))&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
+    function selected(){const bounds=periodBounds();return rows.filter(r=>inPeriod(r,bounds)&&(!isCheckersView||r.game==='checkers')&&($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('checkersTypeFilter').value==='all'||r.checkers_type===$('checkersTypeFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||r.clock_type===$('clockFilter').value||($('clockFilter').value==='unknown'&&!r.clock_type))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&($('endingFilter').value==='all'||r.ending===$('endingFilter').value||($('endingFilter').value==='unspecified'&&!r.ending))&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
     function portions(l,p,d,total){if(!total)return '';return '<span class="l" style="width:'+percent(l,total)+'%"></span><span class="p" style="width:'+percent(p,total)+'%"></span><span class="d" style="width:'+percent(d,total)+'%"></span>';}
     function updateFilterSummary(){
       const ids=['gameFilter','variantFilter','checkersTypeFilter','winnerFilter','clockFilter','flagFilter','endingFilter','dateFrom','dateTo'].filter(id=>!isCheckersView||id!=='gameFilter');
@@ -369,8 +506,10 @@
     function render(){
       const a=selected();
       updateFilterSummary();
+      renderPeriodControls();
       if(isCheckersView){
         renderCheckersHighlights(a);
+        renderTrend(a);
         renderTimeline(a);
         renderTable(a);
         return;
@@ -383,8 +522,10 @@
       $('papaRate').textContent=percent(p,total)+'% от всех партий';
       const dates=a.map(x=>x.date).sort();
       $('period').textContent=dates.length?dateLabel(dates[0])+' — '+dateLabel(dates.at(-1)):'Нет данных';
-      renderChessHighlights(rows.filter(r=>r.game==='chess'&&r.variant==='standard'),true);
-      renderCheckersHighlights(rows.filter(r=>r.game==='checkers'),true);
+      const bounds=periodBounds();
+      renderChessHighlights(rows.filter(r=>inPeriod(r,bounds)&&r.game==='chess'&&r.variant==='standard'),true);
+      renderCheckersHighlights(rows.filter(r=>inPeriod(r,bounds)&&r.game==='checkers'),true);
+      renderTrend(a);
       renderGames(a);renderClocks(a);renderTimeline(a);renderTable(a);
     }
     function resultSummary(t,l,p,d){return '<span class="numbers"><span class="result-stat">Всего: <strong>'+t+'</strong></span><span class="result-stat color-lekha">Лёха: '+l+'</span><span class="result-stat color-papa">Папа: '+p+'</span>'+(d?'<span class="result-stat">Ничьи: '+d+'</span>':'')+'</span>';}
@@ -506,6 +647,7 @@
     window.addEventListener('scroll',()=>{if(activeDateButton){if(tooltipPinned)positionDateTooltip(activeDateButton);else hideDateTooltip();}},{passive:true});
     window.addEventListener('resize',()=>{if(activeDateButton)positionDateTooltip(activeDateButton);});
 
+    document.querySelectorAll('[data-period]').forEach(button=>button.addEventListener('click',()=>{activePeriod=button.dataset.period;render();}));
     for(const id of ['variantFilter','checkersTypeFilter','winnerFilter','clockFilter','flagFilter','endingFilter','dateFrom','dateTo'])$(id).addEventListener('change',render);
     $('gameFilter').addEventListener('change',()=>{refreshVariantOptions();refreshCheckersTypeOptions();render();});
     $('resetButton').addEventListener('click',()=>{for(const id of ['gameFilter','checkersTypeFilter','winnerFilter','clockFilter','flagFilter','endingFilter'])$(id).value='all';if(isCheckersView)$('gameFilter').value='checkers';refreshVariantOptions();refreshCheckersTypeOptions();$('variantFilter').value='all';$('dateFrom').value='';$('dateTo').value='';render();});
