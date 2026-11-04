@@ -164,8 +164,8 @@
     </details>
     <section class="panel trend-panel" aria-label="График динамики побед">
       <div class="trend-head">
-        <div><h2>Перевес побед</h2><p class="hint" id="trendSubtitle" style="margin:0">Перевес побед по неделям</p></div>
-        <div class="trend-legend" aria-label="Легенда"><span><i style="background:var(--lekha)"></i>Перевес Лёхи</span><span><i style="background:var(--papa)"></i>Перевес папы</span></div>
+        <div><h2>Количество побед и ничьих</h2><p class="hint" id="trendSubtitle" style="margin:0">Количество побед и ничьих по неделям</p></div>
+        <div class="trend-legend" aria-label="Легенда"><span><i style="background:var(--lekha)"></i>Победы Лёхи</span><span><i style="background:var(--papa)"></i>Победы папы</span><span><i style="background:var(--draw)"></i>Ничьи</span></div>
       </div>
       <div id="trendChart" class="trend-chart"></div>
       <p id="trendMeta" class="trend-meta"></p>
@@ -229,10 +229,10 @@
     }
     function renderTrend(data) {
       const bounds=periodBounds(), weekly=activePeriod==='all', total=sum(data);
-      $('trendSubtitle').textContent='Перевес побед '+(weekly?'по календарным неделям':'по дням');
+      $('trendSubtitle').textContent='Количество побед и ничьих '+(weekly?'по календарным неделям':'по дням');
       $('trendMeta').textContent=(weekly?'Неделя: понедельник — воскресенье. ':'')+
-        'Выше нуля — преимущество Лёхи, ниже — папы. Перевес = (победы Лёхи − победы папы) / (победы обоих) × 100 п.п. '+
-        'Ничьи не влияют на перевес, но учитываются в n — общем количестве партий. Нет игр — нет столбца.';
+        'Высота каждого столбца — число партий с этим результатом: победы Лёхи, победы папы или ничьи. '+
+        'n — общее число игр за день или неделю. Дни без игр: n=0 и без столбцов.';
       if(!total) {
         $('trendChart').innerHTML='<div class="blank">В выбранном периоде нет партий. График появится после новых игр.</div>';
         return;
@@ -250,48 +250,52 @@
         if(map.has(key))map.get(key)[r.winner]+=r.count;
       }
       const count=b=>b.lekha+b.papa+b.draw;
-      const decisive=b=>b.lekha+b.papa;
-      const margin=b=>decisive(b)?100*(b.lekha-b.papa)/decisive(b):0;
-      const format=n=>(Math.round(Math.abs(n)*10)/10).toLocaleString('ru-RU',{maximumFractionDigits:1});
-      const width=Math.max(650,buckets.length*62+100),height=300;
-      const left=62,top=30,right=24,bottom=66,span=height-top-bottom;
-      const zero=top+span/2,plotWidth=width-left-right;
+      const maxCount=Math.max(1,...buckets.map(b=>Math.max(b.lekha,b.papa,b.draw)));
+      const roughStep=Math.max(1,Math.ceil(maxCount/5));
+      const magnitude=10**Math.floor(Math.log10(roughStep));
+      const tickStep=[1,2,5,10].map(m=>m*magnitude).find(t=>t>=roughStep);
+      const maxY=Math.ceil(maxCount/tickStep)*tickStep;
+      const width=Math.max(680,buckets.length*78+110),height=320;
+      const left=62,top=40,right=28,bottom=75,plotHeight=height-top-bottom;
+      const plotWidth=width-left-right;
       const x=i=>left+(i+.5)*plotWidth/buckets.length;
-      const y=delta=>zero-delta*span/200;
-      const barWidth=Math.min(38,plotWidth/buckets.length*.62);
+      const y=value=>top+(maxY-value)*plotHeight/maxY;
+      const barWidth=Math.min(17,(plotWidth/buckets.length-16)/3);
+      const results=[
+        {key:'lekha',name:'Лёха',color:'var(--lekha)'},
+        {key:'papa',name:'Папа',color:'var(--papa)'},
+        {key:'draw',name:'Ничьи',color:'var(--draw)'}
+      ];
       let svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+
-        '" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Перевес побед '+(weekly?'по неделям':'по дням')+
-        ': зелёные столбцы за Лёху, оранжевые за папу">';
-      for(const tick of [100,50,0,-50,-100]){
+        '" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Количество побед и ничьих '+
+        (weekly?'по неделям':'по дням')+'">';
+      for(let tick=0;tick<=maxY;tick+=tickStep){
         const yy=y(tick),base=tick===0;
         svg+='<line x1="'+left+'" y1="'+yy+'" x2="'+(width-right)+'" y2="'+yy+
           '" stroke="'+(base?'var(--muted)':'var(--line)')+'" stroke-width="'+(base?1.7:1)+
           '" '+(base?'':'stroke-dasharray="4 6"')+'/>'+
-          '<text x="'+(left-12)+'" y="'+(yy+4)+'" text-anchor="end" font-size="12" fill="var(--muted)">'+
-          (tick>0?'+':'')+tick+'</text>';
+          '<text x="'+(left-12)+'" y="'+(yy+4)+'" text-anchor="end" font-size="12" fill="var(--muted)">'+tick+'</text>';
       }
-      svg+='<text x="'+left+'" y="15" font-size="11" fill="var(--muted)">Перевес, п.п.</text>';
+      svg+='<text x="'+left+'" y="18" font-size="11" fill="var(--muted)">Партий, шт.</text>';
       buckets.forEach((b,i)=>{
         const xx=x(i),n=count(b),label=b.date.slice(8,10)+'.'+b.date.slice(5,7);
         svg+='<text x="'+xx+'" y="'+(height-32)+'" text-anchor="middle" font-size="12" fill="var(--muted)">'+label+'</text>'+
           '<text x="'+xx+'" y="'+(height-13)+'" text-anchor="middle" font-size="11" fill="var(--muted)">n='+n+'</text>';
         if(!n)return;
-        const delta=margin(b);
-        const color=delta>0?'var(--lekha)':delta<0?'var(--papa)':'var(--draw)';
-        const value=(delta>0?'+':delta<0?'−':'')+format(delta)+' п.п.';
-        const tooltip=(weekly?'Неделя с ':'Дата ')+dateLabel(b.date)+': Лёха '+b.lekha+
-          ', папа '+b.papa+', ничьи '+b.draw+', всего '+n+'; перевес '+
-          (decisive(b)?value:'не определён (только ничьи)');
-        if(delta===0){
-          svg+='<circle cx="'+xx.toFixed(1)+'" cy="'+zero+'" r="5" fill="'+color+
-            '" tabindex="0" role="img" aria-label="'+esc(tooltip)+'"><title>'+esc(tooltip)+'</title></circle>';
-        }else{
-          const yy=y(delta);
-          svg+='<rect x="'+(xx-barWidth/2).toFixed(1)+'" y="'+Math.min(yy,zero).toFixed(1)+
-            '" width="'+barWidth.toFixed(1)+'" height="'+Math.abs(zero-yy).toFixed(1)+
-            '" rx="4" fill="'+color+'" tabindex="0" role="img" aria-label="'+esc(tooltip)+
-            '"><title>'+esc(tooltip)+'</title></rect>';
-        }
+        const summary=(weekly?'Неделя с ':'Дата ')+dateLabel(b.date)+': Лёха '+b.lekha+
+          ', папа '+b.papa+', ничьи '+b.draw+', всего '+n;
+        results.forEach((result,j)=>{
+          const value=b[result.key];
+          if(!value)return;
+          const cx=xx+(j-1)*(barWidth+3),yy=y(value);
+          const tooltip=summary+'; '+result.name+': '+value;
+          svg+='<rect x="'+(cx-barWidth/2).toFixed(1)+'" y="'+yy.toFixed(1)+
+            '" width="'+barWidth.toFixed(1)+'" height="'+(y(0)-yy).toFixed(1)+
+            '" rx="3" fill="'+result.color+'" tabindex="0" role="img" aria-label="'+esc(tooltip)+
+            '"><title>'+esc(tooltip)+'</title></rect>'+
+            '<text x="'+cx.toFixed(1)+'" y="'+(yy-7).toFixed(1)+
+            '" text-anchor="middle" font-size="11" fill="var(--text)">'+value+'</text>';
+        });
       });
       svg+='</svg>';
       $('trendChart').innerHTML=svg;
