@@ -257,8 +257,8 @@
     }
 
     function setStatus(msg,error=false){$('status').textContent=msg;$('status').className='state'+(error?' error':'');}
-    function loadCSV(text,name,mode){try{const next=validate(parseCSV(text));rows=next;fileLabel=name;loadMode=mode;refreshGameOptions();refreshVariantOptions();refreshCheckersTypeOptions();render();const lastDate=viewRows.reduce((max,r)=>r.date>max?r.date:max,'');
-      const viewRows=isCheckersView?rows.filter(r=>r.game==='checkers'):rows;
+    function loadCSV(text,name,mode){try{const next=validate(parseCSV(text));rows=next;fileLabel=name;loadMode=mode;refreshGameOptions();refreshVariantOptions();refreshCheckersTypeOptions();render();const viewRows=isCheckersView?rows.filter(r=>r.game==='checkers'):rows;
+      const lastDate=viewRows.reduce((max,r)=>r.date>max?r.date:max,'');
       const info=['Загружен '+name,viewRows.length+' строк / '+sum(viewRows)+' партий'+(isCheckersView?' в шашки':'')];
       if(lastDate)info.push('данные по '+dateLabel(lastDate));
       const updated=Date.parse(CSV_UPDATED_AT);
