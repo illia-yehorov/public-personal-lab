@@ -8,7 +8,7 @@
 
 Шахматный дашборд: https://illia-yehorov.github.io/public-personal-lab/game-stats/chess.html (после merge и публикации GitHub Pages)
 
-При HTTP(S) страница автоматически загружает соседний `games.csv` и пересчитывает показатели и фильтры. При локальном открытии `index.html` через `file://` нажми **«Загрузить CSV»** и выбери находящийся рядом `games.csv`. База данных, backend и сторонние JavaScript-библиотеки не нужны. Дашборд не редактирует CSV.
+При HTTP(S) страница автоматически загружает соседний `games.csv` и пересчитывает показатели и фильтры. В строке статуса видно дату последней партии из CSV, **время последнего изменения `games.csv` в Git (`Europe/Kyiv`)** и время загрузки файла браузером. Первое и второе — разные даты: новое открытие страницы не означает обновление статистики. Для автоматической загрузки GitHub Actions встраивает время последнего commit для `games.csv` в публикуемые HTML во время деплоя; локально и при ручной загрузке CSV показываются дата последней партии и время загрузки, но время Git-обновления не приписывается вручную выбранному файлу. При локальном открытии `index.html` через `file://` нажми **«Загрузить CSV»** и выбери находящийся рядом `games.csv`. База данных, backend и сторонние JavaScript-библиотеки не нужны. Дашборд не редактирует CSV.
 
 ## Схема `games.csv`
 
@@ -95,3 +95,7 @@
 **Неоднозначные места:** в строках `2 * 🐜 0+20 п`, `Шх 5+5 п`, `Шх 5+5 ч`, `Шх 3+2 б` нет обозначения системы часов. Их буквальные контроли сохранены в `time_control_raw` без назначения Fischer/Bronstein. Буквы `ч` и `б` сохранены дословно, без автоматического объединения с `w`/`b`. Это не мешает учёту побед, дат и вариантов, но требует уточнения перед аналитикой конкретных систем часов и нормализованных цветов.
 
 Публикация включает `index.html`, `chess.html` и `games.csv`; шахматная страница читает тот же CSV, фильтруя `game=chess`. Графики не используют зашитые в HTML показатели. `python3 .github/scripts/validate-games.py` проверяет данные, а GitHub Actions публикует сайт только после попадания изменений в `main`.
+
+## GitHub update policy
+
+Repository-scoped agent guidance is in [`AGENTS.md`](AGENTS.md). Routine, fully verified CSV updates under `game-stats/` go **directly to `main` in one commit without a Pull Request**. For schema, deployment or substantial dashboard changes, use a branch and Pull Request, validate it, then **merge it yourself after successful checks** when the change is approved in the user's request. Do not require the user to click Merge. Never apply these rules to other repositories or directories.

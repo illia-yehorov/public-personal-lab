@@ -114,6 +114,13 @@
   <script>
     'use strict';
     const $ = id => document.getElementById(id);
+    // Replaced by GitHub Actions using the most recent games.csv commit time.
+    const CSV_UPDATED_AT = '__GAME_STATS_CSV_UPDATED_AT__';
+    const formatStamp = (instant, timeZone) => new Intl.DateTimeFormat('ru-RU', {
+      day:'2-digit', month:'2-digit', year:'numeric',
+      hour:'2-digit', minute:'2-digit',
+      ...(timeZone ? {timeZone} : {})
+    }).format(instant);
     const REQUIRED = ['id','date','game','variant','winner','clock_type','base_seconds','delay_seconds','side_mark','papa_drunk','count','source_entry','notes','checkers_type','ending','time_control_raw'];
     const GAME_NAMES = {checkers:'Шашки',chess:'Шахматы',quoridouble:'Quoridouble',hexagon:'Hexagon'};
     const VARIANT_NAMES = {breakthrough:'Прорыв',antidraughts:'Поддавки',three_check:'Три шаха',standard:'Классические',default:'Основной'};
@@ -193,7 +200,13 @@
     }
 
     function setStatus(msg,error=false){$('status').textContent=msg;$('status').className='state'+(error?' error':'');}
-    function loadCSV(text,name,mode){try{const next=validate(parseCSV(text));rows=next;fileLabel=name;loadMode=mode;refreshGameOptions();refreshVariantOptions();refreshCheckersTypeOptions();render();setStatus('Загружен '+name+' · '+rows.length+' строк / '+sum(rows)+' партий · '+(mode==='auto'?'автоматическая загрузка':'выбранный файл'));}catch(err){setStatus('Не удалось прочитать CSV: '+err.message,true);}}
+    function loadCSV(text,name,mode){try{const next=validate(parseCSV(text));rows=next;fileLabel=name;loadMode=mode;refreshGameOptions();refreshVariantOptions();refreshCheckersTypeOptions();render();const lastDate=rows.reduce((max,r)=>r.date>max?r.date:max,'');
+      const info=['Загружен '+name,rows.length+' строк / '+sum(rows)+' партий'];
+      if(lastDate)info.push('данные по '+dateLabel(lastDate));
+      const updated=Date.parse(CSV_UPDATED_AT);
+      if(mode==='auto' && Number.isFinite(updated))info.push('CSV обновлён '+formatStamp(new Date(updated),'Europe/Kyiv')+' (Киев)');
+      info.push('файл загружен '+formatStamp(new Date()));
+      setStatus(info.join(' · '));}catch(err){setStatus('Не удалось прочитать CSV: '+err.message,true);}}
     function refreshGameOptions(){const current=$('gameFilter').value;const games=[...new Set(rows.map(r=>r.game))];$('gameFilter').innerHTML='<option value="all">Все игры</option>'+games.map(g=>'<option value="'+esc(g)+'">'+esc(GAME_NAMES[g])+'</option>').join('');$('gameFilter').value=games.includes(current)?current:'all';}
     function refreshVariantOptions(){const current=$('variantFilter').value;const game=$('gameFilter').value;const variants=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.variant))];$('variantFilter').innerHTML='<option value="all">Все варианты</option>'+variants.map(v=>'<option value="'+esc(v)+'">'+esc(VARIANT_NAMES[v])+'</option>').join('');$('variantFilter').value=variants.includes(current)?current:'all';}
     function refreshCheckersTypeOptions(){const current=$('checkersTypeFilter').value;const game=$('gameFilter').value;const types=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.checkers_type).filter(Boolean))];$('checkersTypeFilter').innerHTML='<option value="all">Все типы</option>'+types.map(v=>'<option value="'+esc(v)+'">'+esc(CHECKERS_TYPE_NAMES[v])+'</option>').join('');$('checkersTypeFilter').value=types.includes(current)?current:'all';}

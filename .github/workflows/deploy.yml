@@ -49,10 +49,31 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Prepare static site
         run: |
           mkdir -p _site/game-stats
           cp game-stats/index.html game-stats/chess.html game-stats/games.csv _site/game-stats/
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+
+          updated_at = subprocess.check_output(
+              ['git', 'log', '-1', '--format=%cI', '--', 'game-stats/games.csv'],
+              text=True
+          ).strip()
+          if not updated_at:
+              raise RuntimeError('No commit timestamp found for games.csv')
+
+          token = '__GAME_STATS_CSV_UPDATED_AT__'
+          for name in ('index.html', 'chess.html'):
+              target = Path('_site/game-stats') / name
+              html = target.read_text(encoding='utf-8')
+              if html.count(token) != 1:
+                  raise RuntimeError(f'Expected exactly one CSV timestamp token in {name}')
+              target.write_text(html.replace(token, updated_at), encoding='utf-8')
+          PY
           touch _site/.nojekyll
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
