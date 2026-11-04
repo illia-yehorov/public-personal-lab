@@ -77,3 +77,5 @@ G075,2026-11-03,checkers,breakthrough,lekha,bd,0,20,,true,1,bd 0+20 п,,internat
 G076,2026-11-03,chess,standard,lekha,,,,,true,1,Шх 5+5 п,,,,5+5
 G077,2026-11-04,chess,standard,lekha,,,,ч,false,1,Шх 5+5 ч,,,,5+5
 G078,2026-11-04,chess,standard,lekha,,,,б,false,1,Шх 3+2 б,,,,3+2
+G079,2026-11-04,checkers,breakthrough,lekha,bd,0,20,,false,1,bd 0+20,,international,,
+G080,2026-11-04,chess,standard,papa,,,,ч,false,1,Шх 5+5 ч,,,,5+5
