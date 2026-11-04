@@ -81,7 +81,7 @@
   <main class="wrap">
     <header>
       <div><div class="eyebrow">Personal Lab · Game stats</div><h1>Рубилово<span style="color:var(--lekha)">.</span></h1><p class="sub">Папа vs Лёха. Партии, таймеры, варианты игр — всё в одном месте.</p></div>
-      <div class="tools"><label class="file-button" for="csvFile">↥ Загрузить CSV<input id="csvFile" type="file" accept=".csv,text/csv"></label><button id="retryButton" type="button">↻ Обновить</button></div>
+      <div class="tools"><a class="file-button" href="./chess.html">♞ Шахматы</a><label class="file-button" for="csvFile">↥ Загрузить CSV<input id="csvFile" type="file" accept=".csv,text/csv"></label><button id="retryButton" type="button">↻ Обновить</button></div>
     </header>
     <div id="status" role="status" class="state">Загрузка данных…</div>
     <section class="panel filters" aria-label="Фильтры">
@@ -104,7 +104,7 @@
     </section>
     <div class="layout">
       <section class="panel"><h2>Результаты по видам игр</h2><div id="gamesBreakdown" class="stack"></div></section>
-      <section class="panel"><h2>Таймеры и контроль времени</h2><p class="hint" style="margin-top:-6px">Результаты по выбранным фильтрам. «Шашки без таймера» входят в «Все игры без таймера» — эти две строки не нужно складывать. Остальные режимы относятся к шашкам.</p><div id="clocksBreakdown" class="stack clock-results"></div></section>
+      <section class="panel"><h2>Таймеры и контроль времени</h2><p class="hint" style="margin-top:-6px">Результаты по выбранным фильтрам. «Шашки без таймера» входят в «Все игры без таймера» — эти две строки не нужно складывать. Контроль с неуказанной системой показывается буквально, без предположений о типе часов.</p><div id="clocksBreakdown" class="stack clock-results"></div></section>
     </div>
     <section class="panel" style="margin-bottom:20px"><h2>Динамика по датам</h2><p class="hint" style="margin-top:-6px">Свежие даты сверху. Наведи на строку для всплывающей подсказки или нажми, чтобы закрепить её и прокрутить при необходимости. Порядок партий внутри дня неизвестен.</p><div id="timeline"></div></section>
     <section class="panel"><div class="summary-line"><h2 style="margin:0">Записи партий</h2><span class="muted" id="tableCount">—</span></div><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Игра / вариант</th><th>Победитель</th><th>Таймер</th><th>Сторона</th><th>Кол-во</th><th>Исходная запись</th></tr></thead><tbody id="gamesTable"></tbody></table></div></section>
@@ -114,12 +114,12 @@
   <script>
     'use strict';
     const $ = id => document.getElementById(id);
-    const REQUIRED = ['id','date','game','variant','winner','clock_type','base_seconds','delay_seconds','side_mark','papa_drunk','count','source_entry','notes','checkers_type','ending'];
+    const REQUIRED = ['id','date','game','variant','winner','clock_type','base_seconds','delay_seconds','side_mark','papa_drunk','count','source_entry','notes','checkers_type','ending','time_control_raw'];
     const GAME_NAMES = {checkers:'Шашки',chess:'Шахматы',quoridouble:'Quoridouble',hexagon:'Hexagon'};
-    const VARIANT_NAMES = {breakthrough:'Прорыв',three_check:'Три шаха',standard:'Классические',default:'Основной'};
+    const VARIANT_NAMES = {breakthrough:'Прорыв',antidraughts:'Поддавки',three_check:'Три шаха',standard:'Классические',default:'Основной'};
     const CHECKERS_TYPE_NAMES = {international:'Международные',russian:'Русские'};
     const CLOCK_NAMES = {bd:'Bronstein',sdel:'Simple Delay',hg:'Hourglass',sd:'Sudden Death',nt:'Без таймера'};
-    const ALLOWED_VARIANTS = {checkers:['breakthrough','standard'],chess:['three_check','standard'],quoridouble:['default'],hexagon:['default']};
+    const ALLOWED_VARIANTS = {checkers:['breakthrough','standard','antidraughts'],chess:['three_check','standard'],quoridouble:['default'],hexagon:['default']};
     let rows = [], fileLabel = '', loadMode = 'none';
     const timelineDetails = new Map();
     let activeDateButton = null, tooltipPinned = false;
@@ -155,14 +155,15 @@
         if(r.clock_type==='nt'&&r.ending==='time')throw Error(at+'окончание по времени без таймера');
         if(!['lekha','papa','draw'].includes(r.winner))throw Error(at+'неизвестный победитель');
         if(r.clock_type && !CLOCK_NAMES[r.clock_type])throw Error(at+'неизвестный тип часов');
-        if(r.game!=='checkers' && r.clock_type!=='nt')throw Error(at+'для остальных игр по текущим правилам нужен nt (без таймера)');
-        if(!['','w','b','wb'].includes(r.side_mark))throw Error(at+'неизвестная отметка стороны');
+        if(r.time_control_raw && (!/^\d+\+\d+$/.test(r.time_control_raw)||r.clock_type||!['checkers','chess'].includes(r.game)))throw Error(at+'некорректный исходный контроль времени');
+        if(r.game!=='checkers' && r.clock_type!=='nt' && !(r.game==='chess' && !r.clock_type && !!r.time_control_raw))throw Error(at+'неподдерживаемый режим часов для игры');
+        if(!['','w','b','wb','ч','б'].includes(r.side_mark))throw Error(at+'неизвестная отметка стороны');
         if(!['true','false'].includes(r.papa_drunk))throw Error(at+'papa_drunk должен быть true или false');
         if(!/^[1-9]\d*$/.test(r.count) || !Number.isSafeInteger(Number(r.count)))throw Error(at+'count должен быть целым положительным числом');
         r.count=Number(r.count);
         for(const k of ['base_seconds','delay_seconds']) if(r[k]!=='' && (!/^\d+$/.test(r[k]) || !Number.isSafeInteger(Number(r[k]))))throw Error(at+k+' должен быть целым числом секунд');
         if((!r.clock_type || r.clock_type==='nt') && (r.base_seconds!=='' || r.delay_seconds!==''))throw Error(at+'для отсутствующего таймера время должно быть пустым');
-        if(r.clock_type && r.clock_type!=='nt' && (!r.base_seconds || Number(r.base_seconds)<1))throw Error(at+'для таймера нужно положительное base_seconds');
+        if(r.clock_type && r.clock_type!=='nt' && (r.base_seconds==='' || (Number(r.base_seconds)<1 && !(r.clock_type==='bd' && Number(r.delay_seconds)>0))))throw Error(at+'для таймера нужно положительное base_seconds');
         if(['bd','sdel'].includes(r.clock_type) && r.delay_seconds==='')throw Error(at+'нужно delay_seconds для delay-таймера');
         if(['hg','sd'].includes(r.clock_type) && r.delay_seconds!=='')throw Error(at+'для Hourglass / Sudden Death delay_seconds оставляют пустым');
         if(r.base_seconds!=='')r.base_seconds=Number(r.base_seconds);
@@ -173,20 +174,20 @@
     const sum=(items,who)=>items.reduce((s,r)=>s+(who && r.winner!==who?0:r.count),0);
     const percent=(v,total)=>total?Math.round(v*1000/total)/10:0;
     const dateLabel=s=>s.slice(8,10)+'.'+s.slice(5,7)+'.'+s.slice(0,4);
-    const fmtClock=r=>!r.clock_type?'Не указан':r.clock_type==='nt'?'Без таймера':CLOCK_NAMES[r.clock_type]+' · '+Math.floor(r.base_seconds/60)+':'+String(r.base_seconds%60).padStart(2,'0')+(['bd','sdel'].includes(r.clock_type)?' + '+r.delay_seconds+' с':'');
+    const fmtClock=r=>!r.clock_type?(r.time_control_raw?r.time_control_raw+' (система не указана)':'Не указан'):r.clock_type==='nt'?'Без таймера':CLOCK_NAMES[r.clock_type]+' · '+Math.floor(r.base_seconds/60)+':'+String(r.base_seconds%60).padStart(2,'0')+(['bd','sdel'].includes(r.clock_type)?' + '+r.delay_seconds+' с':'');
     const gameLabel=r=>GAME_NAMES[r.game]+' · '+VARIANT_NAMES[r.variant]+(r.game==='checkers'?' · '+CHECKERS_TYPE_NAMES[r.checkers_type]:'');
     const winnerLabel=v=>({lekha:'Лёха',papa:'Папа',draw:'Ничья'})[v];
     const plural=(n,one,few,many)=>n%10===1&&n%100!==11?one:n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?few:many;
     function clockDescription(r){
-      if(!r.clock_type)return 'таймер не указан';
+      if(!r.clock_type)return r.time_control_raw?'контроль '+r.time_control_raw+'; система часов не указана':'таймер не указан';
       if(r.clock_type==='nt')return 'без таймера';
       const time=r.base_seconds<60?r.base_seconds+' с':r.base_seconds%60===0?r.base_seconds/60+' мин':Math.floor(r.base_seconds/60)+' мин '+r.base_seconds%60+' с';
       return 'таймер '+CLOCK_NAMES[r.clock_type]+': '+time+(['bd','sdel'].includes(r.clock_type)?', задержка '+r.delay_seconds+' с':'');
     }
     function entryDescription(r){
-      const game=r.game==='checkers'?(r.variant==='breakthrough'?'Шашки «Прорыв»':'Классические шашки')+' ('+CHECKERS_TYPE_NAMES[r.checkers_type].toLowerCase()+')':r.game==='chess'?'Шахматы «'+VARIANT_NAMES[r.variant]+'»':GAME_NAMES[r.game];
+      const game=r.game==='checkers'?(r.variant==='breakthrough'?'Шашки «Прорыв»':r.variant==='antidraughts'?'Поддавки':'Классические шашки')+' ('+CHECKERS_TYPE_NAMES[r.checkers_type].toLowerCase()+')':r.game==='chess'?'Шахматы «'+VARIANT_NAMES[r.variant]+'»':GAME_NAMES[r.game];
       const result=r.winner==='draw'?(r.count===1?'ничья':'все партии завершились вничью'):r.count===1?'победитель — '+winnerLabel(r.winner):'все партии выиграл '+winnerLabel(r.winner);
-      const side=({w:'белые (w)',b:'чёрные (b)',wb:'wb (как в источнике)'})[r.side_mark];
+      const side=({w:'белые (w)',b:'чёрные (b)',wb:'wb (как в источнике)','ч':'ч (как в источнике)','б':'б (как в источнике)'})[r.side_mark];
       const extra=[clockDescription(r),r.ending==='time'?'завершение по времени':null,side?'отметка стороны: '+side+'; игрок не указан':null,r.papa_drunk==='true'?'пометка «п» (папа выпивший)':null,r.notes?'примечание: '+r.notes:null].filter(Boolean);
       return '<li><strong>'+esc(game)+'</strong> — '+r.count+' '+plural(r.count,'партия','партии','партий')+', '+esc(result)+'. <span class="muted">'+extra.map(esc).join(' · ')+'</span></li>';
     }
@@ -207,13 +208,12 @@
       const total=bucket=>bucket.lekha+bucket.papa+bucket.draw;
       const allNoTimer=fresh(), checkersNoTimer=fresh(), timed=new Map();
       for(const r of a){
-        if(!r.clock_type)continue;
+        if(!r.clock_type && !r.time_control_raw)continue;
         if(r.clock_type==='nt'){
           add(allNoTimer,r);
           if(r.game==='checkers')add(checkersNoTimer,r);
         }else{
-          // Timed modes currently belong to checkers under the documented source rules.
-          const name='Шашки · '+fmtClock(r);
+          const name=GAME_NAMES[r.game]+' · '+fmtClock(r);
           if(!timed.has(name))timed.set(name,fresh());
           add(timed.get(name),r);
         }
