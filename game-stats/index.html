@@ -368,7 +368,7 @@
         r.count=Number(r.count);
         for(const k of ['base_seconds','delay_seconds']) if(r[k]!=='' && (!/^\d+$/.test(r[k]) || !Number.isSafeInteger(Number(r[k]))))throw Error(at+k+' должен быть целым числом секунд');
         if((!r.clock_type || r.clock_type==='nt') && (r.base_seconds!=='' || r.delay_seconds!==''))throw Error(at+'для отсутствующего таймера время должно быть пустым');
-        if(r.clock_type && r.clock_type!=='nt' && (r.base_seconds==='' || (Number(r.base_seconds)<1 && !(r.clock_type==='bd' && Number(r.delay_seconds)>0))))throw Error(at+'для таймера нужно положительное base_seconds');
+        if(r.clock_type && r.clock_type!=='nt' && (r.base_seconds==='' || (Number(r.base_seconds)<1 && !(['bd','sdel'].includes(r.clock_type) && Number(r.delay_seconds)>0))))throw Error(at+'для таймера нужно положительное base_seconds');
         if(['bd','sdel'].includes(r.clock_type) && r.delay_seconds==='')throw Error(at+'нужно delay_seconds для delay-таймера');
         if(['hg','sd'].includes(r.clock_type) && r.delay_seconds!=='')throw Error(at+'для Hourglass / Sudden Death delay_seconds оставляют пустым');
         if(r.base_seconds!=='')r.base_seconds=Number(r.base_seconds);
