@@ -154,7 +154,7 @@
       <div class="filter" style="display:none"><label for="variantFilter">Вариант</label><select id="variantFilter"><option value="all">Все варианты</option></select></div>
       <div class="filter" style="display:none"><label for="checkersTypeFilter">Тип шашек</label><select id="checkersTypeFilter"><option value="all">Все типы</option></select></div>
       <div class="filter"><label for="winnerFilter">Победитель</label><select id="winnerFilter"><option value="all">Все результаты</option><option value="lekha">Лёха</option><option value="papa">Папа</option><option value="draw">Ничья</option></select></div>
-      <div class="filter"><label for="clockFilter">Система часов</label><select id="clockFilter"><option value="all">Все системы</option><option value="bd">Bronstein</option><option value="sdel">Simple Delay</option><option value="hg">Hourglass</option><option value="sd">Sudden Death</option><option value="nt">Без таймера</option><option value="unknown">Не указана</option></select></div>
+      <div class="filter"><label for="clockFilter">Система часов</label><select id="clockFilter"><option value="all">Все системы</option><option value="increment">Инкремент (Фишер)</option><option value="nt">Без таймера</option></select></div>
       <div class="filter"><label for="dateFrom">С даты</label><input type="date" id="dateFrom"></div>
       <div class="filter"><label for="dateTo">По дату</label><input type="date" id="dateTo"></div>
       <div class="filter"><label for="flagFilter">Пометка «п»</label><select id="flagFilter"><option value="all">Все записи</option><option value="true">С пометкой</option><option value="false">Без пометки</option></select></div>
@@ -340,7 +340,7 @@
         r.count=Number(r.count);
         for(const k of ['base_seconds','delay_seconds']) if(r[k]!=='' && (!/^\d+$/.test(r[k]) || !Number.isSafeInteger(Number(r[k]))))throw Error(at+k+' должен быть целым числом секунд');
         if((!r.clock_type || r.clock_type==='nt') && (r.base_seconds!=='' || r.delay_seconds!==''))throw Error(at+'для отсутствующего таймера время должно быть пустым');
-        if(r.clock_type && r.clock_type!=='nt' && (r.base_seconds==='' || (Number(r.base_seconds)<1 && !(r.clock_type==='bd' && Number(r.delay_seconds)>0))))throw Error(at+'для таймера нужно положительное base_seconds');
+        if(r.clock_type && r.clock_type!=='nt' && (r.base_seconds==='' || (Number(r.base_seconds)<1 && !(['bd','sdel'].includes(r.clock_type) && Number(r.delay_seconds)>0))))throw Error(at+'для таймера нужно положительное base_seconds');
         if(['bd','sdel'].includes(r.clock_type) && r.delay_seconds==='')throw Error(at+'нужно delay_seconds для delay-таймера');
         if(['hg','sd'].includes(r.clock_type) && r.delay_seconds!=='')throw Error(at+'для Hourglass / Sudden Death delay_seconds оставляют пустым');
         if(r.base_seconds!=='')r.base_seconds=Number(r.base_seconds);
@@ -351,12 +351,14 @@
     const sum=(items,who)=>items.reduce((s,r)=>s+(who && r.winner!==who?0:r.count),0);
     const percent=(v,total)=>total?Math.round(v*1000/total)/10:0;
     const dateLabel=s=>s.slice(8,10)+'.'+s.slice(5,7)+'.'+s.slice(0,4);
-    const fmtClock=r=>!r.clock_type?(r.time_control_raw?r.time_control_raw+' (система не указана)':'Не указан'):r.clock_type==='nt'?'Без таймера':CLOCK_NAMES[r.clock_type]+' · '+Math.floor(r.base_seconds/60)+':'+String(r.base_seconds%60).padStart(2,'0')+(['bd','sdel'].includes(r.clock_type)?' + '+r.delay_seconds+' с':'');
+    // A chess N+N control uses Fischer increment by default; checkers raw controls remain unspecified.
+    const effectiveClockType=r=>r.game==='chess' && r.variant==='standard' && !r.clock_type && r.time_control_raw?'increment':r.clock_type;
+    const fmtClock=r=>effectiveClockType(r)==='increment'?'Инкремент Фишера · '+r.time_control_raw:!r.clock_type?(r.time_control_raw?r.time_control_raw+' (система не указана)':'Не указан'):r.clock_type==='nt'?'Без таймера':CLOCK_NAMES[r.clock_type]+' · '+Math.floor(r.base_seconds/60)+':'+String(r.base_seconds%60).padStart(2,'0')+(['bd','sdel'].includes(r.clock_type)?' + '+r.delay_seconds+' с':'');
     const gameLabel=r=>GAME_NAMES[r.game]+' · '+VARIANT_NAMES[r.variant]+(r.game==='checkers'?' · '+CHECKERS_TYPE_NAMES[r.checkers_type]:'');
     const winnerLabel=v=>({lekha:'Лёха',papa:'Папа',draw:'Ничья'})[v];
     const plural=(n,one,few,many)=>n%10===1&&n%100!==11?one:n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?few:many;
     function clockDescription(r){
-      if(!r.clock_type)return r.time_control_raw?'контроль '+r.time_control_raw+'; система часов не указана':'таймер не указан';
+      if(!r.clock_type)return effectiveClockType(r)==='increment'?'инкремент Фишера: '+r.time_control_raw+' (минуты + секунды на ход)':r.time_control_raw?'контроль '+r.time_control_raw+'; система часов не указана':'таймер не указан';
       if(r.clock_type==='nt')return 'без таймера';
       const time=r.base_seconds<60?r.base_seconds+' с':r.base_seconds%60===0?r.base_seconds/60+' мин':Math.floor(r.base_seconds/60)+' мин '+r.base_seconds%60+' с';
       return 'таймер '+CLOCK_NAMES[r.clock_type]+': '+time+(['bd','sdel'].includes(r.clock_type)?', задержка '+r.delay_seconds+' с':'');
@@ -381,7 +383,7 @@
     function refreshGameOptions(){const current='chess';const games=[...new Set(rows.map(r=>r.game))];$('gameFilter').innerHTML='<option value="all">Все игры</option>'+games.map(g=>'<option value="'+esc(g)+'">'+esc(GAME_NAMES[g])+'</option>').join('');$('gameFilter').value=games.includes(current)?current:'all';}
     function refreshVariantOptions(){const current=$('variantFilter').value;const game='chess';const variants=[...new Set(rows.filter(r=>(game==='all'||r.game===game)&&r.variant==='standard').map(r=>r.variant))];$('variantFilter').innerHTML='<option value="all">Все варианты</option>'+variants.map(v=>'<option value="'+esc(v)+'">'+esc(VARIANT_NAMES[v])+'</option>').join('');$('variantFilter').value=variants.includes(current)?current:'all';}
     function refreshCheckersTypeOptions(){const current=$('checkersTypeFilter').value;const game='chess';const types=[...new Set(rows.filter(r=>game==='all'||r.game===game).map(r=>r.checkers_type).filter(Boolean))];$('checkersTypeFilter').innerHTML='<option value="all">Все типы</option>'+types.map(v=>'<option value="'+esc(v)+'">'+esc(CHECKERS_TYPE_NAMES[v])+'</option>').join('');$('checkersTypeFilter').value=types.includes(current)?current:'all';}
-    function selected(){const bounds=periodBounds();return rows.filter(r=>inPeriod(r,bounds)&&r.game==='chess' && r.variant==='standard' && ($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('checkersTypeFilter').value==='all'||r.checkers_type===$('checkersTypeFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||r.clock_type===$('clockFilter').value||($('clockFilter').value==='unknown'&&!r.clock_type))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&($('endingFilter').value==='all'||r.ending===$('endingFilter').value||($('endingFilter').value==='unspecified'&&!r.ending))&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
+    function selected(){const bounds=periodBounds();return rows.filter(r=>inPeriod(r,bounds)&&r.game==='chess' && r.variant==='standard' && ($('gameFilter').value==='all'||r.game===$('gameFilter').value)&&($('variantFilter').value==='all'||r.variant===$('variantFilter').value)&&($('checkersTypeFilter').value==='all'||r.checkers_type===$('checkersTypeFilter').value)&&($('winnerFilter').value==='all'||r.winner===$('winnerFilter').value)&&($('clockFilter').value==='all'||effectiveClockType(r)===$('clockFilter').value||($('clockFilter').value==='unknown'&&!effectiveClockType(r)))&&($('flagFilter').value==='all'||r.papa_drunk===$('flagFilter').value)&&($('endingFilter').value==='all'||r.ending===$('endingFilter').value||($('endingFilter').value==='unspecified'&&!r.ending))&&(!$('dateFrom').value||r.date>=$('dateFrom').value)&&(!$('dateTo').value||r.date<=$('dateTo').value));}
     function portions(l,p,d,total){if(!total)return '';return '<span class="l" style="width:'+percent(l,total)+'%"></span><span class="p" style="width:'+percent(p,total)+'%"></span><span class="d" style="width:'+percent(d,total)+'%"></span>';}
     function updateFilterSummary(){
       const ids=['winnerFilter','clockFilter','flagFilter','endingFilter','dateFrom','dateTo'];
@@ -398,8 +400,7 @@
       };
       for(const r of data){
         add(variants, VARIANT_NAMES[r.variant]||r.variant, r);
-        const control=r.time_control_raw?r.time_control_raw+' · система не указана':
-          r.clock_type==='nt'?'Без таймера':r.clock_type?fmtClock(r):'Контроль не указан';
+        const control=fmtClock(r);
         add(controls,control,r);
       }
       const breakdown=grouped=>[...grouped].sort((a,b)=>{
@@ -425,7 +426,7 @@
         '<h3>По вариантам</h3><div class="stack chess-insight-stack">'+breakdown(variants)+'</div>'+link+'</section>'+
         '<section class="panel chess-insight"><div class="chess-head"><h2>⏱ Контроль времени</h2>'+
         '<span class="chess-total">'+total+' партий</span></div>'+
-        '<p class="hint chess-control-hint">Для 5+5 и 3+2 система часов пока не уточнена.</p>'+
+        '<p class="hint chess-control-hint">В шахматах 5+5 и 3+2 — инкремент Фишера (минуты + секунды за ход).</p>'+
         '<div class="stack chess-insight-stack">'+breakdown(controls)+'</div></section>';
     }
 
