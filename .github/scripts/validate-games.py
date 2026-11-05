@@ -91,7 +91,7 @@ def validate():
         else:
             check(re.fullmatch(r'\d+', base) is not None and
                   int(base) <= 2**53 - 1 and
-                  (int(base) > 0 or (clock == 'bd' and delay.isdigit() and int(delay) > 0)),
+                  (int(base) > 0 or (clock in {'bd', 'sdel'} and delay.isdigit() and int(delay) > 0)),
                   line, 'invalid base_seconds')
             if clock in {'bd', 'sdel'}:
                 check(re.fullmatch(r'\d+', delay) is not None and

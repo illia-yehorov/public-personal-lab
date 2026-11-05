@@ -77,6 +77,11 @@ G075,2026-11-03,checkers,breakthrough,lekha,bd,0,20,,true,1,bd 0+20 п,,internat
 G076,2026-11-03,chess,standard,lekha,,,,,true,1,Шх 5+5 п,,,,5+5
 G077,2026-11-04,chess,standard,lekha,,,,ч,false,1,Шх 5+5 ч,,,,5+5
 G078,2026-11-04,chess,standard,lekha,,,,б,false,1,Шх 3+2 б,,,,3+2
-G079,2026-11-04,checkers,breakthrough,lekha,bd,0,20,,false,1,bd 0+20,,international,,
+G079,2026-11-04,checkers,breakthrough,lekha,bd,0,20,,false,2,2 * bd 0+20,,international,,
 G080,2026-11-04,chess,standard,papa,,,,ч,false,1,Шх 5+5 ч,,,,5+5
 G081,2026-11-04,chess,standard,papa,,,,б,false,1,Шх 5+5 б,,,,5+5
+G082,2026-11-04,chess,standard,lekha,,,,б,true,1,Шх 5+5 б п,,,,5+5
+G083,2026-11-04,checkers,breakthrough,lekha,sdel,0,15,,false,1,R_sdel 0+15,,russian,,
+G084,2026-11-04,checkers,breakthrough,lekha,bd,0,20,,true,1,bd 0+20 п,,international,,
+G085,2026-11-04,checkers,breakthrough,papa,bd,0,20,,true,1,bd 0+20 п,,international,,
+G086,2026-11-04,checkers,antidraughts,papa,,,,,true,1,🐜 0+20 п,,international,,0+20
