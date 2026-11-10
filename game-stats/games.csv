@@ -97,3 +97,6 @@ G095,2026-11-07,chess,standard,lekha,,,,б,true,1,Шх 5+5 б п,,,,5+5
 G096,2026-11-07,checkers,breakthrough,lekha,sdel,0,10,,true,1,R_sdel 0+10 п,,russian,,
 G097,2026-11-07,chess,standard,papa,,,,ч,false,1,Шх 5+5 ч,,,,5+5
 G098,2026-11-07,checkers,breakthrough,papa,bd,0,20,,true,1,bd 0+20 п,,international,,
+G099,2026-11-09,chess,standard,lekha,,,,ч,false,1,Шх 5+5 ч,,,,5+5
+G100,2026-11-09,chess,standard,lekha,,,,ч,false,1,Шх 5+5 ч,,,,5+5
+G101,2026-11-09,checkers,breakthrough,lekha,bd,0,20,,false,1,bd 0+20,,international,,
