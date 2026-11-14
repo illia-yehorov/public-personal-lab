@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <title>mix3 R1000-1400 M2-4</title>
-<script type="application/json" id="mix-metadata">{"number": 3, "generated_at": "2026-11-14T13:38:01+00:00", "themes": [{"name": "Перекрытие", "weight": 1.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
+<script type="application/json" id="mix-metadata">{"number": 3, "generated_at": "2026-11-14T13:47:55+00:00", "themes": [{"name": "Перекрытие", "weight": 1.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
 
 <style>
 body {
@@ -104,6 +104,64 @@ button {
     cursor: pointer;
 }
 
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.theme-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px auto;
+}
+
+.theme-controls button {
+    padding: 6px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    font-size: 14px;
+}
+
+.theme-controls button:hover {
+    background: #f1f5f9;
+}
+
+.theme-selection-count {
+    font-size: 13px;
+    color: #475569;
+}
+
+.theme-help {
+    margin: 4px 0 8px;
+    color: #b45309;
+    font-size: 13px;
+}
+
+.theme-help[hidden] {
+    display: none;
+}
+
+.themes-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.theme-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+
+.theme-checkbox:disabled {
+    cursor: not-allowed;
+}
+
 .last-selection {
     max-width: 680px;
     margin: 12px auto 0;
@@ -166,22 +224,28 @@ button {
 }
 
 .themes-table {
-    min-width: 610px;
+    min-width: 670px;
 }
 
 .themes-table th:nth-child(1),
 .themes-table td:nth-child(1) {
-    width: 40px;
+    width: 42px;
     text-align: center;
 }
 
 .themes-table th:nth-child(2),
 .themes-table td:nth-child(2) {
-    text-align: left;
+    width: 40px;
+    text-align: center;
 }
 
 .themes-table th:nth-child(3),
 .themes-table td:nth-child(3) {
+    text-align: left;
+}
+
+.themes-table th:nth-child(4),
+.themes-table td:nth-child(4) {
     width: 60px;
     text-align: center;
 }
@@ -246,7 +310,7 @@ button {
     <h1>Лёха &amp; Папа — шахматная солянка</h1>
 </header>
 
-<button onclick="nextPuzzles()">
+<button id="next-puzzles-button" onclick="nextPuzzles()">
     🎲 Следующие 10 задач
 </button>
 
@@ -281,18 +345,28 @@ button {
         Темы:
     </div>
 
-    <table class="config-table themes-table">
-        <thead>
-            <tr>
-                <th>№</th>
-                <th>Тема</th>
-                <th>Вес</th>
-                <th>Рейтинг</th>
-                <th>Ходы</th>
-            </tr>
-        </thead>
-        <tbody id="themes-body"></tbody>
-    </table>
+    <div class="theme-controls">
+        <button type="button" onclick="selectAllThemes(true)">Выбрать всё</button>
+        <button type="button" onclick="selectAllThemes(false)">Снять всё</button>
+        <span id="theme-selection-count" class="theme-selection-count" role="status" aria-live="polite"></span>
+    </div>
+    <p id="theme-help" class="theme-help" hidden>Выбери хотя бы одну тему, чтобы открыть задачи.</p>
+
+    <div class="themes-scroll" role="region" aria-label="Список тем" tabindex="0">
+        <table class="config-table themes-table">
+            <thead>
+                <tr>
+                    <th>✓</th>
+                    <th>№</th>
+                    <th>Тема</th>
+                    <th>Вес</th>
+                    <th>Рейтинг</th>
+                    <th>Ходы</th>
+                </tr>
+            </thead>
+            <tbody id="themes-body"></tbody>
+        </table>
+    </div>
 
     <div class="section-title">
         Количество ходов:
@@ -372,12 +446,77 @@ const moveCounts = Object.keys(moveWeights)
         )
     );
 
+// Store the selection per mix, keeping an explicitly empty selection on reload.
+// A changed theme list starts with every available theme enabled again.
+const themeSelectionStorageKey = storageKey + ":selectedThemes";
+const themeSelectionSignature = JSON.stringify(themes);
+let selectedThemes = new Set(themes);
+try {
+    const saved = JSON.parse(localStorage.getItem(themeSelectionStorageKey) || "null");
+    if (saved?.signature === themeSelectionSignature
+        && Array.isArray(saved.selected)
+        && saved.selected.every(theme => themes.includes(theme))) {
+        selectedThemes = new Set(saved.selected);
+    }
+} catch (_error) {
+    // Ignore an invalid saved filter without touching the used-ID history.
+}
+
+const themeCheckboxes = new Map();
+
+function updateThemeControls() {
+    document.getElementById("theme-selection-count").textContent =
+        "Выбрано тем: " + selectedThemes.size + " из " + themes.length;
+    const noneSelected = selectedThemes.size === 0;
+    document.getElementById("next-puzzles-button").disabled = noneSelected;
+    document.getElementById("theme-help").hidden = !noneSelected;
+}
+
+function saveThemeSelection() {
+    localStorage.setItem(themeSelectionStorageKey, JSON.stringify({
+        signature: themeSelectionSignature,
+        selected: themes.filter(theme => selectedThemes.has(theme))
+    }));
+}
+
+function themeSelectionChanged() {
+    saveThemeSelection();
+    updateThemeControls();
+    resetMoveBalance();
+}
+
+function selectAllThemes(checked) {
+    selectedThemes = new Set(checked ? themes : []);
+    for (const [theme, checkbox] of themeCheckboxes) {
+        checkbox.checked = selectedThemes.has(theme);
+    }
+    themeSelectionChanged();
+}
+
 function renderSettings() {
     const themesBody =
         document.getElementById("themes-body");
 
     for (const theme of appData.themes) {
         const row = document.createElement("tr");
+
+        const checkboxCell = document.createElement("td");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "theme-checkbox";
+        checkbox.checked = selectedThemes.has(theme.id);
+        checkbox.disabled = !themes.includes(theme.id);
+        checkbox.setAttribute("aria-label", "Включить тему: " + theme.name);
+        checkbox.onchange = () => {
+            if (checkbox.checked) {
+                selectedThemes.add(theme.id);
+            } else {
+                selectedThemes.delete(theme.id);
+            }
+            themeSelectionChanged();
+        };
+        themeCheckboxes.set(theme.id, checkbox);
+        checkboxCell.appendChild(checkbox);
 
         const numberCell =
             document.createElement("td");
@@ -404,6 +543,7 @@ function renderSettings() {
             : "—";
 
         row.append(
+            checkboxCell,
             numberCell,
             nameCell,
             weightCell,
@@ -413,6 +553,7 @@ function renderSettings() {
 
         themesBody.appendChild(row);
     }
+    updateThemeControls();
 
     const movesBody =
         document.getElementById("moves-body");
@@ -648,49 +789,57 @@ function randomItem(array) {
     ];
 }
 
-// Persist quota progress separately from the existing used-ID history.
+// Recalculate quotas for the chosen themes; keep used puzzle IDs untouched.
 const balanceStorageKey = storageKey + ":moveBalance";
-const balanceSignature = JSON.stringify(
-    moveCounts.map(count => [count, moveWeights[count]])
-);
-let moveUsage = Object.fromEntries(
-    moveCounts.map(count => [count, 0])
-);
-let savedBalance = null;
-try {
-    savedBalance = JSON.parse(
-        localStorage.getItem(balanceStorageKey) || "null"
-    );
-} catch (_error) {
-    // Invalid quota state must not erase used puzzle IDs.
+let activeMoveCounts = [];
+let balanceSignature = "";
+let moveUsage = {};
+
+function resetMoveBalance() {
+    const activeThemes = themes.filter(theme => selectedThemes.has(theme));
+    activeMoveCounts = moveCounts.filter(count => activeThemes.some(theme =>
+        (puzzles[theme]?.[count] || []).length > 0
+    ));
+    balanceSignature = JSON.stringify({
+        themes: activeThemes,
+        moves: activeMoveCounts.map(count => [count, moveWeights[count]])
+    });
+    moveUsage = Object.fromEntries(activeMoveCounts.map(count => [count, 0]));
+    let savedBalance = null;
+    try {
+        savedBalance = JSON.parse(
+            localStorage.getItem(balanceStorageKey) || "null"
+        );
+    } catch (_error) {
+        // Invalid quota state must not erase used puzzle IDs.
+    }
+    if (savedBalance?.signature === balanceSignature
+        && activeMoveCounts.every(count =>
+            Number.isSafeInteger(savedBalance.counts?.[count])
+            && savedBalance.counts[count] >= 0
+        )) {
+        moveUsage = { ...savedBalance.counts };
+    }
 }
-if (
-    savedBalance?.signature === balanceSignature
-    && moveCounts.every(count =>
-        Number.isSafeInteger(savedBalance.counts?.[count])
-        && savedBalance.counts[count] >= 0
-    )
-) {
-    moveUsage = { ...savedBalance.counts };
-}
+resetMoveBalance();
 
 // Give each slot to the move count furthest behind its ideal cumulative
 // weighted share. Break ties randomly; quotas remain integer and balanced.
 function buildMoveQuota(batchSize, previousUsage) {
     const counts = { ...previousUsage };
     const quota = Object.fromEntries(
-        moveCounts.map(count => [count, 0])
+        activeMoveCounts.map(count => [count, 0])
     );
-    const totalWeight = moveCounts.reduce(
+    const totalWeight = activeMoveCounts.reduce(
         (sum, count) => sum + moveWeights[count], 0
     );
-    let total = moveCounts.reduce(
+    let total = activeMoveCounts.reduce(
         (sum, count) => sum + counts[count], 0
     );
 
     for (let slot = 0; slot < batchSize; slot++) {
         const nextTotal = total + 1;
-        const deficits = moveCounts.map(count => ({
+        const deficits = activeMoveCounts.map(count => ({
             count,
             value: nextTotal * moveWeights[count] / totalWeight
                 - counts[count]
@@ -711,7 +860,7 @@ function buildMoveQuota(batchSize, previousUsage) {
 
 function shuffleMoveQuota(quota) {
     const order = [];
-    for (const count of moveCounts) {
+    for (const count of activeMoveCounts) {
         for (let i = 0; i < quota[count]; i++) {
             order.push(count);
         }
@@ -727,6 +876,7 @@ function shuffleMoveQuota(quota) {
 function getAvailableBuckets(moveCount, selectedThisClick) {
     const buckets = [];
     for (const theme of themes) {
+        if (!selectedThemes.has(theme)) continue;
         const available = (puzzles[theme]?.[moveCount] || [])
             .filter(id => !used.has(id) && !selectedThisClick.has(id));
         if (available.length > 0) {
@@ -760,13 +910,20 @@ function selectNextPuzzle(moveCount, selectedThisClick) {
         // Restart the used-ID cycle when the required move count runs out.
         // IDs already selected in this click still cannot repeat.
         const hasCandidate = themes.some(theme =>
-            (puzzles[theme]?.[moveCount] || [])
+            selectedThemes.has(theme)
+            && (puzzles[theme]?.[moveCount] || [])
                 .some(id => !selectedThisClick.has(id))
         );
         if (!hasCandidate) {
             return null;
         }
-        used.clear();
+        // Reset only the exhausted active buckets, not unrelated history.
+        for (const theme of themes) {
+            if (!selectedThemes.has(theme)) continue;
+            for (const id of puzzles[theme]?.[moveCount] || []) {
+                used.delete(id);
+            }
+        }
         buckets = getAvailableBuckets(moveCount, selectedThisClick);
     }
     if (buckets.length === 0) {
@@ -780,7 +937,7 @@ function selectNextPuzzle(moveCount, selectedThisClick) {
 }
 
 function nextPuzzles() {
-    if (themes.length === 0 || moveCounts.length === 0) {
+    if (selectedThemes.size === 0 || activeMoveCounts.length === 0) {
         return;
     }
     const quota = buildMoveQuota(puzzlesPerClick, moveUsage);
