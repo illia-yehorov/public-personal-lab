@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <title>mix2 R1000-1400 M2-4</title>
-<script type="application/json" id="mix-metadata">{"number": 2, "generated_at": "2026-11-14T13:47:37+00:00", "themes": [{"name": "Завлечение", "weight": 1.0}, {"name": "Отвлечение", "weight": 1.0}, {"name": "Перекрытие", "weight": 1.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
+<script type="application/json" id="mix-metadata">{"number": 2, "generated_at": "2026-11-14T16:25:26+00:00", "themes": [{"name": "Завлечение", "weight": 1.0}, {"name": "Отвлечение", "weight": 1.0}, {"name": "Перекрытие", "weight": 1.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
 
 <style>
 body {
@@ -160,6 +160,38 @@ button:disabled {
 
 .theme-checkbox:disabled {
     cursor: not-allowed;
+}
+.filter-panel {
+    max-width: 680px;
+    margin: 12px auto;
+    padding: 12px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+    color: #334155;
+}
+.filter-panel h2 { margin: 0 0 8px; font-size: 17px; }
+.filter-panel p { font-size: 13px; margin: 4px 0 10px; }
+.filter-control { padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+.filter-control strong { font-size: 14px; }
+.filter-control label { cursor: pointer; font-size: 14px; }
+.filter-range-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.filter-range-row label { min-width: 45px; }
+.filter-range-row input[type="range"] { flex: 1; min-width: 60px; accent-color: #2563eb; }
+.filter-range-row output { min-width: 50px; text-align: right; font-variant-numeric: tabular-nums; }
+.filter-moves { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0; }
+.filter-status { font-size: 13px; margin: 8px 0; color: #475569; }
+.no-puzzles { color: #b91c1c !important; font-weight: bold; }
+.theme-filter-row td { background: #eff6ff; text-align: left; padding: 10px 14px; }
+.theme-filter-row[hidden] { display: none; }
+.theme-filter-content { max-width: 660px; margin: auto; }
+.theme-filter-content .filter-control { padding: 5px 0; }
+.theme-action { border: 1px solid #bfdbfe; border-radius: 7px; background: white; color: #1d4ed8; padding: 6px 9px; font-size: 13px; }
+.theme-id-list { margin: 8px 0; padding: 8px; border-radius: 6px; background: #fff; font: 12px/1.6 monospace; overflow-wrap: anywhere; user-select: text; }
+@media (max-width: 600px) {
+    .filter-panel { padding: 10px; }
+    .theme-filter-row td { padding: 8px; }
 }
 
 .last-selection {
@@ -340,6 +372,13 @@ button:disabled {
 </section>
 
 <div class="settings">
+    <section class="filter-panel" aria-labelledby="global-filter-title">
+        <h2 id="global-filter-title">Общие настройки тренировки</h2>
+        <p>Рейтинг и ходы ограничены сгенерированными задачами.
+        По умолчанию сохранены исходные веса тем.</p>
+        <div id="global-filter-controls"></div>
+        <button type="button" class="theme-action" onclick="resetTrainingFilters()">Сбросить настройки</button>
+    </section>
 
     <div class="section-title">
         Темы:
@@ -350,7 +389,8 @@ button:disabled {
         <button type="button" onclick="selectAllThemes(false)">Снять всё</button>
         <span id="theme-selection-count" class="theme-selection-count" role="status" aria-live="polite"></span>
     </div>
-    <p id="theme-help" class="theme-help" hidden>Выбери хотя бы одну тему, чтобы открыть задачи.</p>
+    <p id="theme-help" class="theme-help" role="alert" hidden>Выбери хотя бы одну тему, чтобы открыть задачи.</p>
+    <p id="filter-status" class="filter-status" role="status" aria-live="polite"></p>
 
     <div class="themes-scroll" role="region" aria-label="Список тем" tabindex="0">
         <table class="config-table themes-table">
@@ -362,6 +402,8 @@ button:disabled {
                     <th>Вес</th>
                     <th>Рейтинг</th>
                     <th>Ходы</th>
+                    <th>Доступно</th>
+                    <th>Настройка</th>
                 </tr>
             </thead>
             <tbody id="themes-body"></tbody>
@@ -464,6 +506,364 @@ try {
 
 const themeCheckboxes = new Map();
 
+const themeById = new Map(appData.themes.map(theme => [theme.id, theme]));
+const ratingOf = theme => theme.rating || {min: appData.ratingMin, max: appData.ratingMax};
+const movesOf = theme => theme.moves || {min: Math.min(...moveCounts), max: Math.max(...moveCounts)};
+const allMoves = [...moveCounts].sort((a, b) => a - b);
+const globalRatingBounds = {
+    min: Math.min(...appData.themes.map(theme => ratingOf(theme).min)),
+    max: Math.max(...appData.themes.map(theme => ratingOf(theme).max))
+};
+const filterStorageKey = storageKey + ":trainingFilters";
+const filterSignature = JSON.stringify({
+    themes: appData.themes.map(theme => [theme.id, theme.weight, ratingOf(theme), movesOf(theme)]),
+    moves: allMoves.map(count => [count, moveWeights[count]])
+});
+const defaultFilters = () => ({
+    weight: null, rating: {...globalRatingBounds}, moves: [...allMoves]
+});
+let globalFilters = defaultFilters();
+let themeOverrides = {};
+let filteredPools = {};
+let filterBalanceReady = false;
+const themeViews = new Map();
+
+function allowedMoves(theme) {
+    const bounds = movesOf(theme);
+    return allMoves.filter(count => count >= bounds.min && count <= bounds.max);
+}
+function isWeight(value) {
+    return typeof value === "number" && Number.isFinite(value)
+        && value >= 0.1 && value <= 5 && Math.abs(value * 10 - Math.round(value * 10)) < 1e-8;
+}
+function isRange(value, bounds) {
+    return value && Number.isInteger(value.min) && Number.isInteger(value.max)
+        && value.min <= value.max && value.min >= bounds.min && value.max <= bounds.max;
+}
+function isMoves(value, allowed) {
+    return Array.isArray(value)
+        && value.every(item => Number.isInteger(item) && allowed.includes(item));
+}
+function validOverride(value, theme) {
+    return value && typeof value.enabled === "boolean" && isWeight(value.weight)
+        && isRange(value.rating, ratingOf(theme))
+        && isMoves(value.moves, allowedMoves(theme));
+}
+try {
+    const saved = JSON.parse(localStorage.getItem(filterStorageKey) || "null");
+    if (saved?.signature === filterSignature && saved.global
+        && (saved.global.weight === null || isWeight(saved.global.weight))
+        && isRange(saved.global.rating, globalRatingBounds)
+        && isMoves(saved.global.moves, allMoves)
+        && saved.overrides && typeof saved.overrides === "object"
+        && !Array.isArray(saved.overrides)
+        && Object.entries(saved.overrides).every(([id, value]) =>
+            themeById.has(id) && validOverride(value, themeById.get(id)))) {
+        globalFilters = saved.global;
+        themeOverrides = saved.overrides;
+    }
+} catch (_error) {
+    // Invalid browser settings cannot affect puzzle history.
+}
+function storeFilters() {
+    try {
+        localStorage.setItem(filterStorageKey, JSON.stringify({
+            signature: filterSignature, global: globalFilters, overrides: themeOverrides
+        }));
+    } catch (_error) {
+        // Keep training usable in private browsing or restricted storage.
+    }
+}
+function defaultOverride(theme) {
+    return {
+        enabled: false,
+        weight: Math.min(5, Math.max(0.1, Number(theme.weight) || 1)),
+        rating: {...ratingOf(theme)},
+        moves: allowedMoves(theme)
+    };
+}
+function effectiveFilters(themeId) {
+    const theme = themeById.get(themeId);
+    const override = themeOverrides[themeId];
+    if (override?.enabled) return override;
+    const bounds = ratingOf(theme);
+    return {
+        weight: globalFilters.weight === null ? theme.weight : globalFilters.weight,
+        rating: {
+            min: Math.max(bounds.min, globalFilters.rating.min),
+            max: Math.min(bounds.max, globalFilters.rating.max)
+        },
+        moves: globalFilters.moves.filter(count => allowedMoves(theme).includes(count))
+    };
+}
+function candidateIds(themeId) {
+    return allMoves.flatMap(count => filteredPools[themeId]?.[count] || []);
+}
+function refreshFilters() {
+    const unique = new Set();
+    filteredPools = {};
+    for (const theme of appData.themes) {
+        const filters = effectiveFilters(theme.id);
+        const counts = [];
+        filteredPools[theme.id] = {};
+        for (const count of allMoves) {
+            const ids = (puzzles[theme.id]?.[count] || []).filter(id => {
+                const rating = validationData?.[id]?.[0];
+                return filters.moves.includes(count) && Number.isFinite(rating)
+                    && rating >= filters.rating.min && rating <= filters.rating.max;
+            });
+            filteredPools[theme.id][count] = ids;
+            if (ids.length) counts.push(count + "х: " + ids.length);
+            if (selectedThemes.has(theme.id)) ids.forEach(id => unique.add(id));
+        }
+        const view = themeViews.get(theme.id);
+        if (view) {
+            const length = candidateIds(theme.id).length;
+            view.weight.textContent = Number(filters.weight).toFixed(1);
+            view.rating.textContent = filters.rating.min <= filters.rating.max
+                ? filters.rating.min + "–" + filters.rating.max : "—";
+            view.moves.textContent = filters.moves.length ? filters.moves.join(", ") : "—";
+            view.available.textContent = length
+                ? length + " (" + counts.join(", ") + ")" : "0 задач — не найдены";
+            view.available.className = selectedThemes.has(theme.id) && !length
+                ? "no-puzzles" : "";
+            if (!view.ids.hidden) {
+                view.ids.textContent = candidateIds(theme.id).join(", ") || "Нет задач";
+            }
+        }
+    }
+    const noThemes = selectedThemes.size === 0;
+    const empty = !noThemes && unique.size === 0;
+    document.getElementById("theme-selection-count").textContent =
+        "Выбрано тем: " + selectedThemes.size + " из " + themes.length;
+    document.getElementById("next-puzzles-button").disabled = noThemes || empty;
+    const help = document.getElementById("theme-help");
+    help.hidden = !noThemes && !empty;
+    help.textContent = noThemes ? "Выбери хотя бы одну тему, чтобы открыть задачи."
+        : "По выбранным темам и условиям задачи не найдены.";
+    help.className = empty ? "theme-help no-puzzles" : "theme-help";
+    document.getElementById("filter-status").textContent =
+        "Доступно " + unique.size + " уникальных задач из выбранных тем.";
+    storeFilters();
+    if (filterBalanceReady) resetMoveBalance();
+}
+function resetTrainingFilters() {
+    globalFilters = defaultFilters();
+    themeOverrides = {};
+    renderGlobalFilters();
+    for (const view of themeViews.values()) {
+        view.toggle.checked = false;
+        view.controls.hidden = true;
+        view.needsRender = true;
+        view.panel.hidden = true;
+        view.action.textContent = "Настроить";
+    }
+    refreshFilters();
+}
+function weightSlider(target, initial, onChange) {
+    const section = document.createElement("div");
+    section.className = "filter-control";
+    const title = document.createElement("strong");
+    title.textContent = "Вес темы";
+    const row = document.createElement("div");
+    row.className = "filter-range-row";
+    const input = document.createElement("input");
+    input.type = "range";
+    input.min = "0.1";
+    input.max = "5";
+    input.step = "0.1";
+    input.value = String(initial);
+    input.setAttribute("aria-label", "Вес темы");
+    const output = document.createElement("output");
+    output.textContent = Number(initial).toFixed(1);
+    input.oninput = () => {
+        output.textContent = Number(input.value).toFixed(1);
+        onChange(Number(input.value));
+    };
+    row.append(input, output);
+    section.append(title, row);
+    target.appendChild(section);
+    return input;
+}
+function ratingSliders(target, initial, bounds, onChange) {
+    const section = document.createElement("div");
+    section.className = "filter-control";
+    const title = document.createElement("strong");
+    title.textContent = "Рейтинг";
+    section.appendChild(title);
+    let current = {...initial};
+    const inputs = {};
+    const outputs = {};
+    for (const edge of ["min", "max"]) {
+        const row = document.createElement("div");
+        row.className = "filter-range-row";
+        const label = document.createElement("label");
+        label.textContent = edge === "min" ? "От" : "До";
+        const input = document.createElement("input");
+        input.type = "range";
+        input.min = String(bounds.min);
+        input.max = String(bounds.max);
+        input.step = "50";
+        input.value = String(current[edge]);
+        input.setAttribute("aria-label", "Рейтинг " + label.textContent.toLowerCase());
+        const output = document.createElement("output");
+        output.textContent = String(current[edge]);
+        inputs[edge] = input;
+        outputs[edge] = output;
+        input.oninput = () => {
+            current[edge] = Math.max(bounds.min, Math.min(bounds.max, Number(input.value)));
+            if (current.min > current.max) {
+                if (edge === "min") current.max = current.min;
+                else current.min = current.max;
+            }
+            for (const key of ["min", "max"]) {
+                inputs[key].value = String(current[key]);
+                outputs[key].textContent = String(current[key]);
+            }
+            onChange({...current});
+        };
+        row.append(label, input, output);
+        section.appendChild(row);
+    }
+    target.appendChild(section);
+}
+function moveCheckboxes(target, allowed, initial, onChange) {
+    const section = document.createElement("div");
+    section.className = "filter-control";
+    const title = document.createElement("strong");
+    title.textContent = "Количество ходов";
+    const row = document.createElement("div");
+    row.className = "filter-moves";
+    let selected = [...initial];
+    for (const count of allowed) {
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = selected.includes(count);
+        input.onchange = () => {
+            selected = allowed.filter(move =>
+                move === count ? input.checked : selected.includes(move));
+            onChange([...selected]);
+        };
+        label.append(input, " " + count);
+        row.appendChild(label);
+    }
+    section.append(title, row);
+    target.appendChild(section);
+}
+function renderGlobalFilters() {
+    const container = document.getElementById("global-filter-controls");
+    container.replaceChildren();
+    const section = document.createElement("div");
+    section.className = "filter-control";
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = globalFilters.weight === null;
+    label.append(checkbox, " Сохранять исходные веса тем");
+    section.appendChild(label);
+    container.appendChild(section);
+    const slider = weightSlider(container, globalFilters.weight ?? 1, weight => {
+        globalFilters.weight = weight;
+        refreshFilters();
+    });
+    slider.disabled = checkbox.checked;
+    checkbox.onchange = () => {
+        slider.disabled = checkbox.checked;
+        globalFilters.weight = checkbox.checked ? null : Number(slider.value);
+        refreshFilters();
+    };
+    ratingSliders(container, globalFilters.rating, globalRatingBounds, rating => {
+        globalFilters.rating = rating;
+        refreshFilters();
+    });
+    moveCheckboxes(container, allMoves, globalFilters.moves, moves => {
+        globalFilters.moves = moves;
+        refreshFilters();
+    });
+}
+function renderThemeOverride(theme, view) {
+    view.controls.replaceChildren();
+    const state = themeOverrides[theme.id] || (themeOverrides[theme.id] = defaultOverride(theme));
+    weightSlider(view.controls, state.weight, value => {
+        state.weight = value;
+        refreshFilters();
+    });
+    ratingSliders(view.controls, state.rating, ratingOf(theme), value => {
+        state.rating = value;
+        refreshFilters();
+    });
+    moveCheckboxes(view.controls, allowedMoves(theme), state.moves, value => {
+        state.moves = value;
+        refreshFilters();
+    });
+    view.needsRender = false;
+}
+function renderExtraFilters() {
+    renderGlobalFilters();
+    const body = document.getElementById("themes-body");
+    const rows = [...body.children];
+    body.replaceChildren();
+    for (const [index, theme] of appData.themes.entries()) {
+        const row = rows[index];
+        const available = document.createElement("td");
+        const actionCell = document.createElement("td");
+        const action = document.createElement("button");
+        action.className = "theme-action";
+        action.type = "button";
+        action.textContent = "Настроить";
+        actionCell.appendChild(action);
+        row.append(available, actionCell);
+        const panel = document.createElement("tr");
+        panel.className = "theme-filter-row";
+        panel.hidden = true;
+        const panelCell = document.createElement("td");
+        panelCell.colSpan = 8;
+        const content = document.createElement("div");
+        content.className = "theme-filter-content";
+        const label = document.createElement("label");
+        const toggle = document.createElement("input");
+        toggle.type = "checkbox";
+        toggle.checked = themeOverrides[theme.id]?.enabled || false;
+        label.append(toggle, " Индивидуальные настройки вместо общих");
+        const controls = document.createElement("div");
+        controls.hidden = !toggle.checked;
+        const idsAction = document.createElement("button");
+        idsAction.type = "button";
+        idsAction.className = "theme-action";
+        idsAction.textContent = "Показать ID задач";
+        const ids = document.createElement("div");
+        ids.hidden = true;
+        ids.className = "theme-id-list";
+        content.append(label, controls, idsAction, ids);
+        panelCell.appendChild(content);
+        panel.appendChild(panelCell);
+        const view = {weight: row.children[3], rating: row.children[4],
+            moves: row.children[5], available, action, panel, toggle,
+            controls, ids, needsRender: true};
+        themeViews.set(theme.id, view);
+        action.onclick = () => {
+            panel.hidden = !panel.hidden;
+            action.textContent = panel.hidden ? "Настроить" : "Скрыть";
+            if (!panel.hidden && view.needsRender) renderThemeOverride(theme, view);
+        };
+        toggle.onchange = () => {
+            if (!themeOverrides[theme.id]) renderThemeOverride(theme, view);
+            themeOverrides[theme.id].enabled = toggle.checked;
+            controls.hidden = !toggle.checked;
+            refreshFilters();
+        };
+        idsAction.onclick = () => {
+            ids.hidden = !ids.hidden;
+            idsAction.textContent = ids.hidden ? "Показать ID задач" : "Скрыть ID задач";
+            if (!ids.hidden) ids.textContent = candidateIds(theme.id).join(", ") || "Нет задач";
+        };
+        body.append(row, panel);
+    }
+    refreshFilters();
+}
+
+
 function updateThemeControls() {
     document.getElementById("theme-selection-count").textContent =
         "Выбрано тем: " + selectedThemes.size + " из " + themes.length;
@@ -482,7 +882,7 @@ function saveThemeSelection() {
 function themeSelectionChanged() {
     saveThemeSelection();
     updateThemeControls();
-    resetMoveBalance();
+    refreshFilters();
 }
 
 function selectAllThemes(checked) {
@@ -580,6 +980,7 @@ function renderSettings() {
 }
 
 renderSettings();
+renderExtraFilters();
 
 if (
     themes.length === 0
@@ -668,7 +1069,7 @@ function matchesExpectedTheme(expectedTheme, themes) {
 }
 
 // Compare the live API response with the CSV snapshot generated into this HTML.
-function comparePuzzle(id, expectedTheme, response) {
+function comparePuzzle(id, expectedTheme, response, selectedRatingRange = null) {
     const expected = validationData?.[id];
     if (!expected) {
         return { status: "unknown", message: "Нет исходных данных для сравнения" };
@@ -693,7 +1094,7 @@ function comparePuzzle(id, expectedTheme, response) {
     if (!matchesExpectedTheme(expectedTheme, puzzle.themes)) {
         problems.push("нет ожидаемой темы " + expectedTheme);
     }
-    const ratingRange = appData.themes.find(
+    const ratingRange = selectedRatingRange || appData.themes.find(
         theme => theme.id === expectedTheme
     )?.rating || { min: appData.ratingMin, max: appData.ratingMax };
     if (puzzle.rating < ratingRange.min || puzzle.rating > ratingRange.max) {
@@ -754,7 +1155,7 @@ async function validateSelectedPuzzles(selected) {
             }
             const data = await result.json();
             if (generation !== validationGeneration) return;
-            const check = comparePuzzle(id, theme, data);
+            const check = comparePuzzle(id, theme, data, selected[index].ratingRange);
             showValidation(index, check.status, check.message);
         } catch (_error) {
             if (generation !== validationGeneration) return;
@@ -797,12 +1198,13 @@ let moveUsage = {};
 
 function resetMoveBalance() {
     const activeThemes = themes.filter(theme => selectedThemes.has(theme));
-    activeMoveCounts = moveCounts.filter(count => activeThemes.some(theme =>
-        (puzzles[theme]?.[count] || []).length > 0
+    activeMoveCounts = allMoves.filter(count => activeThemes.some(theme =>
+        (filteredPools[theme]?.[count] || []).length > 0
     ));
     balanceSignature = JSON.stringify({
         themes: activeThemes,
-        moves: activeMoveCounts.map(count => [count, moveWeights[count]])
+        moves: activeMoveCounts.map(count => [count, moveWeights[count]]),
+        globalFilters, themeOverrides
     });
     moveUsage = Object.fromEntries(activeMoveCounts.map(count => [count, 0]));
     let savedBalance = null;
@@ -821,6 +1223,7 @@ function resetMoveBalance() {
         moveUsage = { ...savedBalance.counts };
     }
 }
+filterBalanceReady = true;
 resetMoveBalance();
 
 // Give each slot to the move count furthest behind its ideal cumulative
@@ -877,13 +1280,13 @@ function getAvailableBuckets(moveCount, selectedThisClick) {
     const buckets = [];
     for (const theme of themes) {
         if (!selectedThemes.has(theme)) continue;
-        const available = (puzzles[theme]?.[moveCount] || [])
+        const available = (filteredPools[theme]?.[moveCount] || [])
             .filter(id => !used.has(id) && !selectedThisClick.has(id));
         if (available.length > 0) {
             buckets.push({
                 theme,
                 available,
-                weight: themeWeights[theme]
+                weight: effectiveFilters(theme).weight
             });
         }
     }
@@ -911,7 +1314,7 @@ function selectNextPuzzle(moveCount, selectedThisClick) {
         // IDs already selected in this click still cannot repeat.
         const hasCandidate = themes.some(theme =>
             selectedThemes.has(theme)
-            && (puzzles[theme]?.[moveCount] || [])
+            && (filteredPools[theme]?.[moveCount] || [])
                 .some(id => !selectedThisClick.has(id))
         );
         if (!hasCandidate) {
@@ -920,7 +1323,7 @@ function selectNextPuzzle(moveCount, selectedThisClick) {
         // Reset only the exhausted active buckets, not unrelated history.
         for (const theme of themes) {
             if (!selectedThemes.has(theme)) continue;
-            for (const id of puzzles[theme]?.[moveCount] || []) {
+            for (const id of filteredPools[theme]?.[moveCount] || []) {
                 used.delete(id);
             }
         }
@@ -933,7 +1336,8 @@ function selectNextPuzzle(moveCount, selectedThisClick) {
     const id = randomItem(bucket.available);
     used.add(id);
     selectedThisClick.add(id);
-    return { id, theme: bucket.theme };
+    return { id, theme: bucket.theme,
+        ratingRange: {...effectiveFilters(bucket.theme).rating} };
 }
 
 function nextPuzzles() {
