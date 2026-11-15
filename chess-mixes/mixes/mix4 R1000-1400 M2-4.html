@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <title>mix4 R1000-1400 M2-4</title>
-<script type="application/json" id="mix-metadata">{"number": 4, "generated_at": "2026-11-15T10:51:22+00:00", "themes": [{"name": "Освобождение линии или поля", "weight": 75.0}, {"name": "Завлечение", "weight": 25.0}, {"name": "Отвлечение", "weight": 25.0}, {"name": "Перекрытие", "weight": 25.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
+<script type="application/json" id="mix-metadata">{"number": 4, "generated_at": "2026-11-15T11:01:11+00:00", "themes": [{"name": "Освобождение линии или поля", "weight": 75.0}, {"name": "Завлечение", "weight": 25.0}, {"name": "Отвлечение", "weight": 25.0}, {"name": "Перекрытие", "weight": 25.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
 
 <style>
 body {
@@ -1378,6 +1378,158 @@ function shuffleMoveQuota(quota) {
     return order;
 }
 
+
+function shuffleItems(items) {
+    const result = [...items];
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+}
+
+// For every theme, allocate floor(batchSize * weight / totalWeight) tasks.
+// The remaining tasks use systematic random rounding: a fractional share
+// of 0.5 gets one extra task with probability 50%, while totals stay exact.
+function buildThemeQuota(batchSize) {
+    const active = themes.filter(theme => selectedThemes.has(theme)
+        && effectiveFilters(theme).weight > 0 && candidateIds(theme).length > 0);
+    const quota = Object.fromEntries(active.map(theme => [theme, 0]));
+    const totalWeight = active.reduce(
+        (sum, theme) => sum + effectiveFilters(theme).weight, 0
+    );
+    if (!totalWeight) return quota;
+    let carry = Math.random();
+    for (const theme of active) {
+        let expected = batchSize * effectiveFilters(theme).weight / totalWeight;
+        // Avoid 0.9999999999999999 becoming zero guaranteed tasks.
+        if (Math.abs(expected - Math.round(expected)) < 1e-9) {
+            expected = Math.round(expected);
+        }
+        const guaranteed = Math.floor(expected);
+        const fractional = expected - guaranteed;
+        quota[theme] = guaranteed;
+        carry += fractional;
+        if (carry >= 1 - 1e-9) {
+            quota[theme]++;
+            carry -= 1;
+        }
+    }
+    return quota;
+}
+
+// Match theme-quota "tickets" to the required move lengths. Augmenting
+// paths reserve scarce lengths instead of letting flexible themes consume
+// them first. If the two sets of quotas conflict, fill the remaining slots
+// with themes that actually have puzzles for those move lengths.
+function assignThemesToMoves(order, themeQuota) {
+    const tickets = Object.entries(themeQuota).flatMap(([theme, count]) =>
+        Array(count).fill(theme)
+    );
+    const assignedSlot = Array(tickets.length).fill(-1);
+    const assignments = Array(order.length).fill(null);
+    const candidates = order.map((moveCount, index) => ({
+        index,
+        options: tickets.reduce((total, theme) =>
+            total + Number((filteredPools[theme]?.[moveCount] || []).length > 0), 0)
+    })).sort((a, b) => a.options - b.options);
+
+    function match(slot, seen) {
+        for (const ticketIndex of shuffleItems(tickets.map((_, index) => index))) {
+            const theme = tickets[ticketIndex];
+            if (seen.has(ticketIndex)
+                || !(filteredPools[theme]?.[order[slot]] || []).length) continue;
+            seen.add(ticketIndex);
+            const otherSlot = assignedSlot[ticketIndex];
+            if (otherSlot === -1 || match(otherSlot, seen)) {
+                assignedSlot[ticketIndex] = slot;
+                assignments[slot] = theme;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    for (const { index } of candidates) match(index, new Set());
+    const counts = Object.fromEntries(themes.map(theme => [theme, 0]));
+    assignments.filter(Boolean).forEach(theme => counts[theme]++);
+    for (let index = 0; index < assignments.length; index++) {
+        if (assignments[index]) continue;
+        const eligible = themes.filter(theme => selectedThemes.has(theme)
+            && effectiveFilters(theme).weight > 0
+            && (filteredPools[theme]?.[order[index]] || []).length > 0);
+        if (!eligible.length) continue;
+        // First minimize missing target quotas, then prefer higher weights.
+        const deficit = Math.max(...eligible.map(theme =>
+            (themeQuota[theme] || 0) - counts[theme]
+        ));
+        const best = eligible.filter(theme =>
+            (themeQuota[theme] || 0) - counts[theme] === deficit
+        );
+        const chosen = weightedRandomBucket(best.map(theme => ({
+            theme, weight: effectiveFilters(theme).weight
+        }))).theme;
+        assignments[index] = chosen;
+        counts[chosen]++;
+    }
+    return assignments;
+}
+
+// Match concrete puzzle IDs to all planned slots so overlapping themes do
+// not cause duplicate puzzles. Prefer IDs not used in previous batches.
+function assignUniquePuzzleIds(order, assignments) {
+    const ids = Array(order.length).fill(null);
+    const ownerById = new Map();
+    const sortedSlots = order.map((moveCount, index) => ({
+        index, size: (filteredPools[assignments[index]]?.[moveCount] || []).length
+    })).sort((a, b) => a.size - b.size);
+
+    function match(slot, seen) {
+        const pool = filteredPools[assignments[slot]]?.[order[slot]] || [];
+        if (!pool.length) return false;
+        const start = Math.floor(Math.random() * pool.length);
+        for (let pass = 0; pass < 2; pass++) {
+            for (let offset = 0; offset < pool.length; offset++) {
+                const id = pool[(start + offset) % pool.length];
+                if (seen.has(id) || Number(used.has(id)) !== pass) continue;
+                seen.add(id);
+                const previousSlot = ownerById.get(id);
+                if (previousSlot === undefined || match(previousSlot, seen)) {
+                    ownerById.set(id, slot);
+                    ids[slot] = id;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    for (const { index } of sortedSlots) {
+        if (!match(index, new Set())) return null;
+    }
+    return ids;
+}
+
+function selectPlannedPuzzles(order, themeQuota) {
+    const assignments = assignThemesToMoves(order, themeQuota);
+    const ids = assignUniquePuzzleIds(order, assignments);
+    if (!ids) return null;
+
+    // Only restart a theme/move pool whose reused IDs were needed.
+    const previouslyUsed = new Set(used);
+    for (let index = 0; index < ids.length; index++) {
+        if (!previouslyUsed.has(ids[index])) continue;
+        for (const id of filteredPools[assignments[index]]?.[order[index]] || []) {
+            used.delete(id);
+        }
+    }
+    ids.forEach(id => used.add(id));
+    return ids.map((id, index) => ({
+        id, theme: assignments[index],
+        ratingRange: {...effectiveFilters(assignments[index]).rating}
+    }));
+}
+
 function getAvailableBuckets(moveCount, selectedThisClick) {
     const buckets = [];
     for (const theme of themes) {
@@ -1409,13 +1561,15 @@ function weightedRandomBucket(buckets) {
     return buckets[buckets.length - 1];
 }
 
-function selectNextPuzzle(moveCount, selectedThisClick) {
+function selectNextPuzzle(moveCount, selectedThisClick, preferredTheme = null) {
     let buckets = getAvailableBuckets(moveCount, selectedThisClick);
+    if (preferredTheme) buckets = buckets.filter(bucket => bucket.theme === preferredTheme);
     if (buckets.length === 0) {
         // Restart the used-ID cycle when the required move count runs out.
         // IDs already selected in this click still cannot repeat.
         const hasCandidate = themes.some(theme =>
             selectedThemes.has(theme)
+            && (!preferredTheme || theme === preferredTheme)
             && (filteredPools[theme]?.[moveCount] || [])
                 .some(id => !selectedThisClick.has(id))
         );
@@ -1424,12 +1578,13 @@ function selectNextPuzzle(moveCount, selectedThisClick) {
         }
         // Reset only the exhausted active buckets, not unrelated history.
         for (const theme of themes) {
-            if (!selectedThemes.has(theme)) continue;
+            if (!selectedThemes.has(theme) || (preferredTheme && theme !== preferredTheme)) continue;
             for (const id of filteredPools[theme]?.[moveCount] || []) {
                 used.delete(id);
             }
         }
         buckets = getAvailableBuckets(moveCount, selectedThisClick);
+        if (preferredTheme) buckets = buckets.filter(bucket => bucket.theme === preferredTheme);
     }
     if (buckets.length === 0) {
         return null;
@@ -1448,19 +1603,29 @@ function nextPuzzles() {
     }
     const quota = buildMoveQuota(puzzlesPerClick, moveUsage);
     const order = shuffleMoveQuota(quota);
-    const selectedIds = [];
-    const selectedDetails = [];
-    const selectedThisClick = new Set();
+    const themeQuota = buildThemeQuota(puzzlesPerClick);
+    let selectedDetails = selectPlannedPuzzles(order, themeQuota);
 
-    for (const moveCount of order) {
-        const choice = selectNextPuzzle(moveCount, selectedThisClick);
-        if (choice === null) {
-            // Do not silently replace a missing move count with another.
-            break;
+    if (selectedDetails === null) {
+        // Sparse or overlapping puzzle pools may prevent the exact quotas.
+        // Keep the existing no-repeat fallback rather than opening duplicates.
+        selectedDetails = [];
+        const selectedThisClick = new Set();
+        const assignments = assignThemesToMoves(order, themeQuota);
+        for (let index = 0; index < order.length; index++) {
+            const moveCount = order[index];
+            const choice = selectNextPuzzle(moveCount, selectedThisClick, assignments[index])
+                || selectNextPuzzle(moveCount, selectedThisClick);
+            if (choice === null) break;
+            selectedDetails.push(choice);
         }
-        selectedIds.push(choice.id);
-        selectedDetails.push(choice);
-        moveUsage[moveCount]++;
+    }
+    const selectedIds = selectedDetails.map(item => item.id);
+    for (let index = 0; index < selectedDetails.length; index++) {
+        const id = selectedDetails[index].id;
+        // Retain the move count of every actually selected task.
+        const moveCount = order[index];
+        if (id) moveUsage[moveCount]++;
     }
 
     localStorage.setItem(storageKey, JSON.stringify([...used]));
