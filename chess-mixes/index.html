@@ -13,11 +13,17 @@
     .intro { color: #52647c; margin-bottom: 32px; }
     h2 { font-size: 20px; margin-bottom: 16px; }
     .mix-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-    .mix-card { padding: 20px; border-radius: 14px; background: white; border: 1px solid #dee5ef; box-shadow: 0 2px 8px #19243d08; }
+    .mix-card { padding: 16px 20px; border-radius: 14px; background: white; border: 1px solid #dee5ef; box-shadow: 0 2px 8px #19243d08; }
     .mix-card a { color: #195fb5; font-weight: 650; text-decoration: none; font-size: 18px; }
     .mix-card a:hover { text-decoration: underline; }
-    .mix-details { display: block; margin-top: 8px; color: #52647c; font-size: 14px; }
-    .mix-date { display: block; margin-top: 5px; color: #6b7890; font-size: 13px; }
+    .mix-details { display: block; margin-top: 7px; color: #52647c; font-size: 14px; }
+    .mix-date { display: block; margin-top: 4px; color: #6b7890; font-size: 13px; }
+    .mix-topics { border-top: 1px solid #e6ebf2; margin-top: 11px; padding-top: 8px; }
+    .mix-topics summary { color: #456581; font-size: 13px; cursor: pointer; width: fit-content; }
+    .mix-topics summary:hover { color: #195fb5; }
+    .mix-topic-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 5px 12px; margin: 9px 0 2px; padding: 0; }
+    .mix-topic-list li { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 4px 8px; border-radius: 6px; background: #f5f7fb; font-size: 13px; }
+    .mix-topic-list li strong { flex: none; font-variant-numeric: tabular-nums; color: #315d96; }
     .empty { color: #52647c; padding: 18px; border: 1px dashed #c9d5e5; border-radius: 12px; }
     footer { margin-top: 42px; color: #64748b; font-size: 13px; }
     footer a { color: inherit; }
@@ -30,11 +36,7 @@
     <section aria-labelledby="catalog-title">
       <h2 id="catalog-title">Каталог</h2>
       <ul class="mix-list">
-<li class="mix-card"><a href="mixes/mix1%20R1200-1500%20M2-4.html" target="_blank" rel="noopener noreferrer">1. Незащищённая фигура (1), Вилка (1.5), Связка (1.5), Сквозной удар (1.5), Уничтожение защитника (2), Вскрытое нападение (2), Пойманная фигура (2), Мат по последней горизонтали (1), Мат (1)</a><span class="mix-details">Рейтинг: 1200–1500 · Ходы: 2–4</span><span class="mix-date">Сгенерирована: 14.11.2026, 15:47 (Киев)</span></li>
-<li class="mix-card"><a href="mixes/mix2%20R1000-1400%20M2-4.html" target="_blank" rel="noopener noreferrer">2. Завлечение (1), Отвлечение (1), Перекрытие (1)</a><span class="mix-details">Рейтинг: 1000–1400 · Ходы: 2–4</span><span class="mix-date">Сгенерирована: 14.11.2026, 15:47 (Киев)</span></li>
-<li class="mix-card"><a href="mixes/mix3%20R1000-1400%20M2-4.html" target="_blank" rel="noopener noreferrer">3. Перекрытие (1)</a><span class="mix-details">Рейтинг: 1000–1400 · Ходы: 2–4</span><span class="mix-date">Сгенерирована: 14.11.2026, 15:47 (Киев)</span></li>
-<li class="mix-card"><a href="mixes/mix4%20R1000-1400%20M2-4.html" target="_blank" rel="noopener noreferrer">4. Освобождение линии или поля (75), Завлечение (25), Отвлечение (25), Перекрытие (25)</a><span class="mix-details">Рейтинг: 1000–1400 · Ходы: 2–4</span><span class="mix-date">Сгенерирована: 15.11.2026, 13:13 (Киев)</span></li>
-<li class="mix-card"><a href="mixes/mix4%20R900-1200%20M2-4.html" target="_blank" rel="noopener noreferrer">4. Освобождение линии или поля (1)</a><span class="mix-details">Рейтинг: 900–1200 · Ходы: 2–4</span><span class="mix-date">Сгенерирована: 14.11.2026, 15:48 (Киев)</span></li>
+<li class="mix-card"><a href="mixes/mix4%20R1000-1400%20M2-4.html" target="_blank" rel="noopener noreferrer">4. Освобождение линии или поля</a><span class="mix-details">Рейтинг: 1000–1400 · Ходы: 2–4</span><span class="mix-date">Сгенерирована: 15.11.2026, 13:35 (Киев)</span><details class="mix-topics"><summary>Темы (4)</summary><ul class="mix-topic-list"><li><span>Освобождение линии или поля</span><strong>50%</strong></li><li><span>Завлечение</span><strong>17%</strong></li><li><span>Отвлечение</span><strong>17%</strong></li><li><span>Перекрытие</span><strong>17%</strong></li></ul></details></li>
 </ul>
     </section>
     <footer>Шахматные задачи взяты из открытой базы <a href="https://database.lichess.org/#puzzles" target="_blank" rel="noopener noreferrer">Lichess</a>, распространяемой по лицензии <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">Creative Commons CC0 1.0</a>. Тематические подборки сформированы проектом Chess Mixes. Проект независимый и не связан с администрацией Lichess.</footer>
