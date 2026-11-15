@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <title>mix4 R1000-1400 M2-4</title>
-<script type="application/json" id="mix-metadata">{"number": 4, "generated_at": "2026-11-15T11:01:11+00:00", "themes": [{"name": "Освобождение линии или поля", "weight": 75.0}, {"name": "Завлечение", "weight": 25.0}, {"name": "Отвлечение", "weight": 25.0}, {"name": "Перекрытие", "weight": 25.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
+<script type="application/json" id="mix-metadata">{"number": 4, "generated_at": "2026-11-15T11:13:48+00:00", "themes": [{"name": "Освобождение линии или поля", "weight": 75.0}, {"name": "Завлечение", "weight": 25.0}, {"name": "Отвлечение", "weight": 25.0}, {"name": "Перекрытие", "weight": 25.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
 
 <style>
 body {
@@ -37,6 +37,18 @@ body {
     margin: 0;
     font-size: 26px;
     line-height: 1.25;
+}
+
+.page-header-titles {
+    min-width: 0;
+}
+
+.mix-name {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: 16px;
+    line-height: 1.35;
+    font-weight: 400;
 }
 
 .instructions {
@@ -83,6 +95,11 @@ body {
 
     .page-header h1 {
         font-size: 20px;
+    }
+
+    .mix-name {
+        margin-top: 4px;
+        font-size: 14px;
     }
 
     .chess-icon {
@@ -164,23 +181,43 @@ button:disabled {
 .filter-panel {
     max-width: 680px;
     margin: 12px auto;
-    padding: 12px 16px;
     border: 1px solid #cbd5e1;
     border-radius: 12px;
     background: #fff;
     text-align: left;
     color: #334155;
 }
-.filter-panel h2 { margin: 0 0 8px; font-size: 17px; }
-.filter-panel p { font-size: 13px; margin: 4px 0 10px; }
-.filter-control { padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
-.filter-control strong { font-size: 14px; }
-.filter-control label { cursor: pointer; font-size: 14px; }
-.filter-range-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
-.filter-range-row label { min-width: 45px; }
-.filter-range-row input[type="range"] { flex: 1; min-width: 60px; accent-color: #2563eb; }
-.filter-range-row output { min-width: 50px; text-align: right; font-variant-numeric: tabular-nums; }
-.filter-moves { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0; }
+.filter-panel > summary {
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.filter-panel > summary:hover { background: #f8fafc; }
+.filter-panel[open] > summary { border-bottom: 1px solid #e2e8f0; }
+.filter-panel-content { padding: 7px 14px 12px; }
+.filter-panel-content > p { margin: 2px 0 7px; color: #64748b; font-size: 12px; line-height: 1.45; }
+.filter-control { padding: 6px 0; border-bottom: 1px solid #e2e8f0; }
+.filter-control strong { font-size: 13px; }
+.filter-control label { cursor: pointer; font-size: 13px; }
+.filter-source-control { padding-top: 3px; }
+.filter-range-row { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.filter-range-row input[type="range"] { flex: 1; min-width: 0; accent-color: #2563eb; }
+.filter-range-row output { min-width: 38px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+.filter-weight-control,
+.filter-rating-control,
+.filter-moves-control { display: flex; align-items: center; gap: 10px; }
+.filter-weight-control > strong,
+.filter-rating-control > strong,
+.filter-moves-control > strong { flex: 0 0 105px; }
+.filter-weight-control .filter-range-row { flex: 1; min-width: 0; }
+.filter-rating-row { display: flex; flex: 1; min-width: 0; gap: 14px; align-items: center; }
+.filter-rating-edge { display: flex; flex: 1; min-width: 0; align-items: center; gap: 5px; }
+.filter-rating-edge label { flex: 0 0 auto; }
+.filter-rating-edge input[type="range"] { flex: 1; width: 100%; min-width: 0; accent-color: #2563eb; }
+.filter-rating-edge output { flex: 0 0 35px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+.filter-moves { display: flex; flex: 1; flex-wrap: wrap; gap: 12px; margin: 2px 0; }
+.filter-panel-content > .theme-action { margin-top: 9px; }
 .filter-status { font-size: 13px; margin: 8px 0; color: #475569; }
 .no-puzzles { color: #b91c1c !important; font-weight: bold; }
 .theme-filter-row td { background: #eff6ff; text-align: left; padding: 10px 14px; }
@@ -190,8 +227,18 @@ button:disabled {
 .theme-action { border: 1px solid #bfdbfe; border-radius: 7px; background: white; color: #1d4ed8; padding: 6px 9px; font-size: 13px; }
 .theme-id-list { margin: 8px 0; padding: 8px; border-radius: 6px; background: #fff; font: 12px/1.6 monospace; overflow-wrap: anywhere; user-select: text; }
 @media (max-width: 600px) {
-    .filter-panel { padding: 10px; }
+    .filter-panel > summary { padding: 10px 12px; }
+    .filter-panel-content { padding: 6px 12px 10px; }
     .theme-filter-row td { padding: 8px; }
+}
+@media (max-width: 520px) {
+    .filter-weight-control > strong,
+    .filter-moves-control > strong { flex-basis: 90px; }
+    .filter-rating-control { flex-direction: column; align-items: stretch; gap: 4px; }
+    .filter-rating-control > strong { flex: none; }
+    .filter-rating-row { gap: 10px; }
+    .filter-rating-edge { gap: 4px; }
+    .filter-rating-edge output { flex-basis: 32px; }
 }
 
 .last-selection {
@@ -229,11 +276,120 @@ button:disabled {
 }
 
 .last-selection-overview {
-    line-height: 1.6;
+    display: grid;
+    gap: 10px;
 }
 
-.last-selection-overview div + div {
-    margin-top: 4px;
+.batch-counts {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+}
+
+.batch-count {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    color: #475569;
+    font-size: 13px;
+}
+
+.batch-count strong {
+    color: #0f172a;
+    font-size: 22px;
+    font-variant-numeric: tabular-nums;
+}
+
+.batch-label {
+    margin-bottom: 5px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.batch-theme-list,
+.batch-rating-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.batch-theme {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    padding: 4px 5px 4px 10px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+}
+
+.batch-theme-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 19px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #334155;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.batch-rating {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #94a3b8;
+    border-radius: 6px;
+    padding: 5px 8px;
+    background: #fff;
+    font-size: 12px;
+    color: #475569;
+}
+
+.batch-rating strong {
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+}
+
+.batch-rating.inside { border-left-color: #16a34a; }
+.batch-rating.above { border-left-color: #d97706; }
+.batch-rating.below { border-left-color: #dc2626; }
+.batch-rating.inside strong { color: #15803d; }
+.batch-rating.above strong { color: #b45309; }
+.batch-rating.below strong { color: #b91c1c; }
+
+.batch-rating-offset {
+    font-size: 12px;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+}
+
+.batch-rating-help {
+    margin-top: 5px;
+    color: #64748b;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.batch-rating-placeholder {
+    font-size: 12px;
+    color: #64748b;
+}
+
+@media (max-width: 600px) {
+    .batch-counts { gap: 6px 14px; }
+    .batch-theme { font-size: 12px; }
 }
 
 .last-selection-details {
@@ -362,7 +518,10 @@ button:disabled {
 
 <header class="page-header">
     <span class="chess-icon" aria-hidden="true">♛</span>
-    <h1>Лёха &amp; Папа — шахматная солянка</h1>
+    <div class="page-header-titles">
+        <h1>Лёха &amp; Папа — шахматная солянка</h1>
+        <p class="mix-name">Освобождение линии или поля</p>
+    </div>
 </header>
 
 <button id="next-puzzles-button" onclick="nextPuzzles()">
@@ -371,8 +530,19 @@ button:disabled {
 
 <section class="last-selection" id="last-selection" hidden>
     <div class="last-selection-overview" role="status" aria-live="polite">
-        <div id="last-selection-theme-summary"></div>
-        <div id="last-selection-rating-summary"></div>
+        <div class="batch-counts">
+            <span class="batch-count"><strong id="batch-task-count">0</strong> задач</span>
+            <span class="batch-count"><strong id="batch-theme-count">0</strong> тем</span>
+        </div>
+        <div class="batch-group">
+            <div class="batch-label">Распределение по темам</div>
+            <div class="batch-theme-list" id="last-selection-theme-summary"></div>
+        </div>
+        <div class="batch-group">
+            <div class="batch-label">Актуальный рейтинг Lichess</div>
+            <div class="batch-rating-list" id="last-selection-rating-summary"></div>
+            <div class="batch-rating-help">Отклонения — от границ диапазона выбранной темы</div>
+        </div>
     </div>
     <details class="last-selection-details" id="last-selection-details">
         <summary>Последние выбранные задачи (по порядку вкладок)</summary>
@@ -400,13 +570,15 @@ button:disabled {
 </section>
 
 <div class="settings">
-    <section class="filter-panel" aria-labelledby="global-filter-title">
-        <h2 id="global-filter-title">Общие настройки тренировки</h2>
-        <p>Рейтинг и ходы ограничены сгенерированными задачами.
-        По умолчанию сохранены исходные веса тем.</p>
-        <div id="global-filter-controls"></div>
-        <button type="button" class="theme-action" onclick="resetTrainingFilters()">Сбросить настройки</button>
-    </section>
+    <details class="filter-panel" id="global-filter-panel">
+        <summary id="global-filter-title">Общие настройки тренировки</summary>
+        <div class="filter-panel-content">
+            <p>Рейтинг и ходы ограничены сгенерированными задачами.
+            По умолчанию сохранены исходные веса тем.</p>
+            <div id="global-filter-controls"></div>
+            <button type="button" class="theme-action" onclick="resetTrainingFilters()">Сбросить настройки</button>
+        </div>
+    </details>
 
     <div class="section-title">
         Темы:
@@ -691,7 +863,7 @@ function resetTrainingFilters() {
 }
 function weightSlider(target, initial, onChange) {
     const section = document.createElement("div");
-    section.className = "filter-control";
+    section.className = "filter-control filter-weight-control";
     const title = document.createElement("strong");
     title.textContent = "Вес темы";
     const row = document.createElement("div");
@@ -716,16 +888,18 @@ function weightSlider(target, initial, onChange) {
 }
 function ratingSliders(target, initial, bounds, onChange) {
     const section = document.createElement("div");
-    section.className = "filter-control";
+    section.className = "filter-control filter-rating-control";
     const title = document.createElement("strong");
     title.textContent = "Рейтинг";
     section.appendChild(title);
+    const row = document.createElement("div");
+    row.className = "filter-rating-row";
     let current = {...initial};
     const inputs = {};
     const outputs = {};
     for (const edge of ["min", "max"]) {
-        const row = document.createElement("div");
-        row.className = "filter-range-row";
+        const control = document.createElement("div");
+        control.className = "filter-rating-edge";
         const label = document.createElement("label");
         label.textContent = edge === "min" ? "От" : "До";
         const input = document.createElement("input");
@@ -751,14 +925,15 @@ function ratingSliders(target, initial, bounds, onChange) {
             }
             onChange({...current});
         };
-        row.append(label, input, output);
-        section.appendChild(row);
+        control.append(label, input, output);
+        row.appendChild(control);
     }
+    section.appendChild(row);
     target.appendChild(section);
 }
 function moveCheckboxes(target, allowed, initial, onChange) {
     const section = document.createElement("div");
-    section.className = "filter-control";
+    section.className = "filter-control filter-moves-control";
     const title = document.createElement("strong");
     title.textContent = "Количество ходов";
     const row = document.createElement("div");
@@ -784,7 +959,7 @@ function renderGlobalFilters() {
     const container = document.getElementById("global-filter-controls");
     container.replaceChildren();
     const section = document.createElement("div");
-    section.className = "filter-control";
+    section.className = "filter-control filter-source-control";
     const label = document.createElement("label");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -1070,11 +1245,10 @@ function renderLastSelection(ids) {
 function updateBatchOverview() {
     const themeSummary = document.getElementById("last-selection-theme-summary");
     const ratingSummary = document.getElementById("last-selection-rating-summary");
-    if (lastSelectedEntries.length === 0) {
-        themeSummary.textContent = "";
-        ratingSummary.textContent = "";
-        return;
-    }
+    themeSummary.replaceChildren();
+    ratingSummary.replaceChildren();
+    document.getElementById("batch-task-count").textContent = lastSelectedEntries.length;
+
     const counts = new Map();
     let missingThemes = 0;
     for (const entry of lastSelectedEntries) {
@@ -1085,19 +1259,39 @@ function updateBatchOverview() {
             counts.set(themeId, (counts.get(themeId) || 0) + 1);
         }
     }
-    const namedCounts = [...counts].map(([id, count]) => ({
-        name: themeById.get(id)?.name || id, count
-    })).sort((a, b) => a.name.localeCompare(b.name, "ru"));
-    themeSummary.textContent = "Выбрано задач: " + lastSelectedEntries.length
-        + "; тем: " + namedCounts.length + ". "
-        + namedCounts.map(item => item.name + " — " + item.count).join("; ")
-        + (missingThemes ? (namedCounts.length ? "; " : "")
-            + "тема не сохранена — " + missingThemes : "");
 
+    // themeById keeps the original TOML [[themes]] order.
+    const orderedThemes = [...themeById.keys()].filter(id => counts.has(id));
+    // Keep previously saved unknown theme IDs readable after a config change.
+    orderedThemes.push(...[...counts.keys()].filter(id => !themeById.has(id)));
+    document.getElementById("batch-theme-count").textContent = orderedThemes.length;
+
+    function appendTheme(name, count) {
+        const chip = document.createElement("span");
+        chip.className = "batch-theme";
+        const text = document.createElement("span");
+        text.textContent = name;
+        const number = document.createElement("span");
+        number.className = "batch-theme-count";
+        number.textContent = count;
+        chip.append(text, number);
+        themeSummary.appendChild(chip);
+    }
+
+    for (const id of orderedThemes) {
+        appendTheme(themeById.get(id)?.name || id, counts.get(id));
+    }
+    if (missingThemes) appendTheme("Тема не сохранена", missingThemes);
+
+    if (lastSelectedEntries.length === 0) return;
     if (validationStates.length === 0) {
-        ratingSummary.textContent = "Рейтинг Lichess: проверка по API ещё не выполнена.";
+        const placeholder = document.createElement("span");
+        placeholder.className = "batch-rating-placeholder";
+        placeholder.textContent = "Проверка по API ещё не выполнена";
+        ratingSummary.appendChild(placeholder);
         return;
     }
+
     const groups = { inside: [], above: [], below: [] };
     let pending = 0;
     let unavailable = 0;
@@ -1112,18 +1306,31 @@ function updateBatchOverview() {
             unavailable++;
         }
     }
-    // Sorting offsets avoids exposing the API verification (tab) order.
-    const deviations = list => list.length
-        ? " (" + [...list].sort((a, b) => a - b)
-            .map(value => (value > 0 ? "+" : "") + value).join(", ") + ")"
-        : "";
-    ratingSummary.textContent = "Рейтинг Lichess: в диапазоне — "
-        + groups.inside.length + "; выше — " + groups.above.length
-        + deviations(groups.above) + "; ниже — " + groups.below.length
-        + deviations(groups.below)
-        + (pending ? "; проверяются — " + pending : "")
-        + (unavailable ? "; без данных API — " + unavailable : "")
-        + ". Отклонения указаны от границы диапазона выбранной темы.";
+
+    function appendRating(label, count, kind, offsets = []) {
+        const badge = document.createElement("span");
+        badge.className = "batch-rating " + kind;
+        const text = document.createElement("span");
+        text.textContent = label;
+        const number = document.createElement("strong");
+        number.textContent = count;
+        badge.append(text, number);
+        if (offsets.length) {
+            const deviation = document.createElement("span");
+            deviation.className = "batch-rating-offset";
+            // Do not reveal tab order in the overview.
+            deviation.textContent = "(" + [...offsets].sort((a, b) => a - b)
+                .map(value => (value > 0 ? "+" : "") + value).join(", ") + ")";
+            badge.appendChild(deviation);
+        }
+        ratingSummary.appendChild(badge);
+    }
+
+    appendRating("В диапазоне", groups.inside.length, "inside");
+    appendRating("Выше", groups.above.length, "above", groups.above);
+    appendRating("Ниже", groups.below.length, "below", groups.below);
+    if (pending) appendRating("Проверяется", pending, "pending");
+    if (unavailable) appendRating("Нет данных", unavailable, "unknown");
 }
 
 function updateValidationSummary() {
