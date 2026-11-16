@@ -109,3 +109,7 @@ G107,2026-11-14,chess,standard,lekha,,,,,false,1,Шх 5+5,,,,5+5
 G108,2026-11-14,checkers,breakthrough,lekha,sdel,0,20,,false,1,sdel 0+20,,international,,
 G109,2026-11-14,checkers,antidraughts,papa,bd,0,20,,false,2,2 * ant bd 0+20,,international,,
 G110,2026-11-14,chess,standard,papa,,,,,true,1,Шх 5+5 п,,,,5+5
+G111,2026-11-15,checkers,antidraughts,lekha,bd,0,20,,false,1,ant bd 0+20,,international,,
+G112,2026-11-15,chess,standard,lekha,,,,,true,1,Шх 5+5 п,,,,5+5
+G113,2026-11-15,checkers,breakthrough,lekha,bd,0,15,,true,1,bd 0+15 п,,international,,
+G114,2026-11-15,checkers,antidraughts,papa,bd,0,20,,true,1,ant bd 0+20 п,,international,,
