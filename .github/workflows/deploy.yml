@@ -9,7 +9,6 @@ on:
       - 'game-stats/games.csv'
       - '.github/workflows/deploy.yml'
       - '.github/scripts/validate-games.py'
-      - 'chess-mixes/**'
   push:
     branches: [main]
     paths:
@@ -18,7 +17,6 @@ on:
       - 'game-stats/games.csv'
       - '.github/workflows/deploy.yml'
       - '.github/scripts/validate-games.py'
-      - 'chess-mixes/**'
   workflow_dispatch:
 
 permissions:
@@ -36,12 +34,6 @@ jobs:
         uses: actions/checkout@v6
       - name: Validate game statistics
         run: python3 .github/scripts/validate-games.py
-      - name: Validate published chess mixes
-        run: |
-          if [ -d chess-mixes ]; then
-            test -f chess-mixes/index.html
-            test -d chess-mixes/mixes
-          fi
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -63,9 +55,6 @@ jobs:
         run: |
           mkdir -p _site/game-stats
           cp game-stats/index.html game-stats/chess.html game-stats/games.csv _site/game-stats/
-          if [ -d chess-mixes ]; then
-            cp -a chess-mixes _site/
-          fi
           python3 - <<'PY'
           import subprocess
           from pathlib import Path
