@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <title>mix1 R1200-1500 M2-4</title>
-<script type="application/json" id="mix-metadata">{"number": 1, "name": "Основная солянка", "generated_at": "2026-11-20T14:21:13+00:00", "themes": [{"name": "Незащищённая фигура", "weight": 1}, {"name": "Вилка", "weight": 1.5}, {"name": "Связка", "weight": 1.5}, {"name": "Сквозной удар", "weight": 1.5}, {"name": "Уничтожение защитника", "weight": 2}, {"name": "Вскрытое нападение", "weight": 2}, {"name": "Пойманная фигура", "weight": 2}, {"name": "Мат по последней горизонтали", "weight": 1}, {"name": "Мат", "weight": 1}], "rating": {"min": 1200, "max": 1500}, "moves": {"min": 2, "max": 4}}</script>
+<script type="application/json" id="mix-metadata">{"number": 1, "name": "Основная солянка", "generated_at": "2026-11-20T14:24:05+00:00", "themes": [{"name": "Незащищённая фигура", "weight": 1}, {"name": "Вилка", "weight": 1.5}, {"name": "Связка", "weight": 1.5}, {"name": "Сквозной удар", "weight": 1.5}, {"name": "Уничтожение защитника", "weight": 2}, {"name": "Вскрытое нападение", "weight": 2}, {"name": "Пойманная фигура", "weight": 2}, {"name": "Мат по последней горизонтали", "weight": 1}, {"name": "Мат", "weight": 1}], "rating": {"min": 1200, "max": 1500}, "moves": {"min": 2, "max": 4}}</script>
 
 <style>
 body {
@@ -583,6 +583,8 @@ button:disabled {
     🎲 Следующие 10 задач
 </button>
 
+<p id="selection-progress" class="filter-status" role="status" aria-live="polite" hidden></p>
+
 <section class="last-selection" id="last-selection" hidden>
     <div class="last-selection-overview" role="status" aria-live="polite">
         <div class="batch-counts">
@@ -602,9 +604,10 @@ button:disabled {
     <details class="last-selection-details" id="last-selection-details">
         <summary>Последние выбранные задачи (по порядку вкладок)</summary>
         <ol id="last-selection-list"></ol>
-        <p>После открытия вкладок страница проверит выбранные задачи через API Lichess.
-        Проверка не блокирует вкладки и не гарантирует, что Lichess не изменит
-        задачу позднее.</p>
+        <p>Перед открытием каждой задачи проверяются актуальный рейтинг и соответствие
+        исходной базе через API Lichess. Неподходящие задачи заменяются. Если API
+        недоступен, непроверенные задачи не открываются. После проверки Lichess
+        может изменить задачу снова.</p>
         <div class="integrity-summary" id="integrity-summary" role="status" aria-live="polite"></div>
     </details>
 </section>
@@ -730,6 +733,8 @@ let lastSelectedEntries = [];
 let validationGeneration = 0;
 let validationController = null;
 let rateLimitedUntil = 0;
+let selectionInProgress = false;
+let activeSelectionController = null;
 
 const themes = Object.keys(themeWeights).filter(
     theme => (themeWeights[theme] || 0) > 0
@@ -856,6 +861,8 @@ function candidateIds(themeId) {
     return allMoves.flatMap(count => filteredPools[themeId]?.[count] || []);
 }
 function refreshFilters() {
+    // A changed training filter must not approve a candidate against stale limits.
+    activeSelectionController?.abort();
     const unique = new Set();
     filteredPools = {};
     for (const theme of appData.themes) {
@@ -1492,6 +1499,44 @@ function comparePuzzle(id, expectedTheme, response, selectedRatingRange = null) 
     return { status: "ok", message: "Совпадает с базой; " + ratingText, ratingCheck };
 }
 
+// Verify before opening a puzzle. An API error must never approve a task.
+async function inspectCandidate(id, theme, ratingRange, signal) {
+    if (signal?.aborted) {
+        return { status: "unknown", message: "Настройки изменены; подбор остановлен", stop: true };
+    }
+    if (Date.now() < rateLimitedUntil) {
+        return { status: "unknown", message: "Лимит Lichess: повтори позже", stop: true };
+    }
+    try {
+        const result = await fetch(
+            "https://lichess.org/api/puzzle/" + encodeURIComponent(id),
+            { signal, credentials: "omit", cache: "no-store" }
+        );
+        if (signal?.aborted) {
+            return { status: "unknown", message: "Настройки изменены; подбор остановлен", stop: true };
+        }
+        if (result.status === 429) {
+            rateLimitedUntil = Date.now() + 60000;
+            return { status: "unknown", message: "Лимит Lichess (HTTP 429); подбор остановлен", stop: true };
+        }
+        if (result.status === 404) {
+            return { status: "invalid", message: "Задача недоступна (HTTP 404)" };
+        }
+        if (!result.ok) {
+            return { status: "unknown", message: "Ошибка API (HTTP " + result.status + "); подбор остановлен", stop: true };
+        }
+        const data = await result.json();
+        if (signal?.aborted) {
+            return { status: "unknown", message: "Настройки изменены; подбор остановлен", stop: true };
+        }
+        return comparePuzzle(id, theme, data, ratingRange);
+    } catch (_error) {
+        return { status: "unknown", message: signal?.aborted
+            ? "Настройки изменены; подбор остановлен"
+            : "Нет ответа API (сеть или CORS); подбор остановлен", stop: true };
+    }
+}
+
 async function validateSelectedPuzzles(selected) {
     if (!validationData || Object.keys(validationData).length === 0
         || selected.length === 0) return;
@@ -1499,46 +1544,18 @@ async function validateSelectedPuzzles(selected) {
     validationController?.abort();
     validationController = new AbortController();
     selected.forEach((_, index) => showValidation(index, "checking", "Ожидает проверки"));
-
-    if (Date.now() < rateLimitedUntil) {
-        selected.forEach((_, index) => showValidation(
-            index, "unknown", "Лимит API: повтори попытку через минуту"
-        ));
-        return;
-    }
-    // Lichess requests one API call at a time. Stop a batch on HTTP 429.
     for (let index = 0; index < selected.length; index++) {
         if (generation !== validationGeneration) return;
-        const { id, theme } = selected[index];
+        const { id, theme, ratingRange } = selected[index];
         showValidation(index, "checking", "Проверяется по API Lichess");
-        try {
-            const result = await fetch(
-                "https://lichess.org/api/puzzle/" + encodeURIComponent(id),
-                { signal: validationController.signal, credentials: "omit", cache: "no-store" }
-            );
-            if (generation !== validationGeneration) return;
-            if (result.status === 429) {
-                rateLimitedUntil = Date.now() + 60000;
-                for (let rest = index; rest < selected.length; rest++) {
-                    showValidation(rest, "unknown", "Лимит Lichess (HTTP 429); проверка остановлена");
-                }
-                return;
+        const check = await inspectCandidate(id, theme, ratingRange, validationController.signal);
+        if (generation !== validationGeneration) return;
+        showValidation(index, check.status, check.message, check.ratingCheck);
+        if (check.stop) {
+            for (let rest = index + 1; rest < selected.length; rest++) {
+                showValidation(rest, "unknown", "Проверка остановлена");
             }
-            if (result.status === 404) {
-                showValidation(index, "invalid", "Задача недоступна (HTTP 404)");
-                continue;
-            }
-            if (!result.ok) {
-                showValidation(index, "unknown", "Ошибка API (HTTP " + result.status + ")");
-                continue;
-            }
-            const data = await result.json();
-            if (generation !== validationGeneration) return;
-            const check = comparePuzzle(id, theme, data, selected[index].ratingRange);
-            showValidation(index, check.status, check.message, check.ratingCheck);
-        } catch (_error) {
-            if (generation !== validationGeneration) return;
-            showValidation(index, "unknown", "Нет ответа API (сеть или CORS)");
+            return;
         }
     }
 }
@@ -1559,6 +1576,12 @@ try {
     // A broken saved selection must not affect puzzle generation.
 }
 renderLastSelection(lastSelection);
+lastSelection.forEach((entry, index) => {
+    if (entry && typeof entry === "object" && entry.validation?.status) {
+        const check = entry.validation;
+        showValidation(index, check.status, check.message, check.ratingCheck);
+    }
+});
 
 function randomItem(array) {
     return array[
@@ -1754,24 +1777,36 @@ function assignThemesToMoves(order, themeQuota) {
 
 // Match concrete puzzle IDs to all planned slots so overlapping themes do
 // not cause duplicate puzzles. Prefer IDs not used in previous batches.
-function assignUniquePuzzleIds(order, assignments) {
+// Reserve approved IDs and avoid rejected theme/ID pairs. Replan remaining
+// slots together so overlapping pools stay unique and quotas remain fixed.
+function assignUniquePuzzleIds(order, assignments, rejected = new Set(),
+    approved = [], pools = filteredPools) {
     const ids = Array(order.length).fill(null);
     const ownerById = new Map();
+    approved.forEach((id, index) => {
+        if (id) {
+            ids[index] = id;
+            ownerById.set(id, index);
+        }
+    });
     const sortedSlots = order.map((moveCount, index) => ({
-        index, size: (filteredPools[assignments[index]]?.[moveCount] || []).length
-    })).sort((a, b) => a.size - b.size);
+        index, size: (pools[assignments[index]]?.[moveCount] || []).length
+    })).filter(item => !approved[item.index]).sort((a, b) => a.size - b.size);
 
     function match(slot, seen) {
-        const pool = filteredPools[assignments[slot]]?.[order[slot]] || [];
+        const theme = assignments[slot];
+        const pool = pools[theme]?.[order[slot]] || [];
         if (!pool.length) return false;
         const start = Math.floor(Math.random() * pool.length);
         for (let pass = 0; pass < 2; pass++) {
             for (let offset = 0; offset < pool.length; offset++) {
                 const id = pool[(start + offset) % pool.length];
-                if (seen.has(id) || Number(used.has(id)) !== pass) continue;
+                if (rejected.has(theme + ":" + id)
+                    || seen.has(id) || Number(used.has(id)) !== pass) continue;
                 seen.add(id);
                 const previousSlot = ownerById.get(id);
-                if (previousSlot === undefined || match(previousSlot, seen)) {
+                if (previousSlot === undefined
+                    || (!approved[previousSlot] && match(previousSlot, seen))) {
                     ownerById.set(id, slot);
                     ids[slot] = id;
                     return true;
@@ -1785,26 +1820,6 @@ function assignUniquePuzzleIds(order, assignments) {
         if (!match(index, new Set())) return null;
     }
     return ids;
-}
-
-function selectPlannedPuzzles(order, themeQuota) {
-    const assignments = assignThemesToMoves(order, themeQuota);
-    const ids = assignUniquePuzzleIds(order, assignments);
-    if (!ids) return null;
-
-    // Only restart a theme/move pool whose reused IDs were needed.
-    const previouslyUsed = new Set(used);
-    for (let index = 0; index < ids.length; index++) {
-        if (!previouslyUsed.has(ids[index])) continue;
-        for (const id of filteredPools[assignments[index]]?.[order[index]] || []) {
-            used.delete(id);
-        }
-    }
-    ids.forEach(id => used.add(id));
-    return ids.map((id, index) => ({
-        id, theme: assignments[index],
-        ratingRange: {...effectiveFilters(assignments[index]).rating}
-    }));
 }
 
 function getAvailableBuckets(moveCount, selectedThisClick) {
@@ -1874,58 +1889,184 @@ function selectNextPuzzle(moveCount, selectedThisClick, preferredTheme = null) {
         ratingRange: {...effectiveFilters(bucket.theme).rating} };
 }
 
-function nextPuzzles() {
-    if (selectedThemes.size === 0 || activeMoveCounts.length === 0) {
+// Used only when there are too few distinct IDs for the global matching plan.
+// Prefer the planned theme and unused IDs, keeping the original move length.
+function fallbackCandidate(moveCount, preferredTheme, approved, rejected, pools, weights) {
+    const acceptedIds = new Set(approved.filter(Boolean).map(entry => entry.id));
+    function choices(theme) {
+        return (pools[theme]?.[moveCount] || []).filter(id =>
+            !acceptedIds.has(id) && !rejected.has(theme + ":" + id)
+        );
+    }
+    const preferred = preferredTheme && choices(preferredTheme).length
+        ? [preferredTheme]
+        : Object.keys(weights).filter(theme => weights[theme] > 0
+            && choices(theme).length);
+    if (!preferred.length) return null;
+    let buckets = preferred.map(theme => ({
+        theme, weight: weights[theme], available: choices(theme)
+    }));
+    const unused = buckets.map(bucket => ({
+        ...bucket, available: bucket.available.filter(id => !used.has(id))
+    })).filter(bucket => bucket.available.length);
+    if (unused.length) buckets = unused;
+    const bucket = weightedRandomBucket(buckets);
+    return { id: randomItem(bucket.available), theme: bucket.theme };
+}
+
+function reservePuzzleTabs(count) {
+    // Browsers allow tabs opened in this synchronous click handler,
+    // but usually block new windows opened after a network request.
+    return Array.from({ length: count }, () => {
+        const tab = window.open("about:blank", "_blank");
+        if (tab) {
+            try {
+                tab.document.title = "Chess Mixes — проверка задач";
+                tab.document.body.textContent = "Проверка рейтинга через Lichess API…";
+                tab.opener = null;
+            } catch (_error) {
+                // A blocked or closed tab still has a link in the summary.
+            }
+        }
+        return tab;
+    });
+}
+
+function openApprovedTab(tab, id) {
+    if (!tab || tab.closed) return;
+    try {
+        tab.location.replace("https://lichess.org/training/" + encodeURIComponent(id));
+    } catch (_error) {
+        // The verified ID remains available as a link in the summary.
+    }
+}
+
+// Preflight every candidate and retry rejected ones without spending theme
+// or move quotas. Never mark an unverified or rejected ID as used.
+async function nextPuzzles() {
+    if (selectionInProgress || selectedThemes.size === 0 || activeMoveCounts.length === 0) {
         return;
     }
+    const progress = document.getElementById("selection-progress");
+    if (Date.now() < rateLimitedUntil) {
+        progress.hidden = false;
+        progress.textContent = "Лимит Lichess API: повтори подбор через минуту.";
+        return;
+    }
+
+    selectionInProgress = true;
+    const button = document.getElementById("next-puzzles-button");
+    button.disabled = true;
+    progress.hidden = false;
+    progress.textContent = "Резервируем вкладки и проверяем рейтинг задач…";
+    const tabs = reservePuzzleTabs(puzzlesPerClick);
+    const controller = new AbortController();
+    activeSelectionController = controller;
+    const pools = filteredPools;
+    const originalSignature = balanceSignature;
     const quota = buildMoveQuota(puzzlesPerClick, moveUsage);
     const order = shuffleMoveQuota(quota);
     const themeQuota = buildThemeQuota(puzzlesPerClick);
-    let selectedDetails = selectPlannedPuzzles(order, themeQuota);
+    const weights = Object.fromEntries(Object.keys(themeQuota).map(theme =>
+        [theme, effectiveFilters(theme).weight]
+    ));
+    const ranges = Object.fromEntries(Object.keys(themeQuota).map(theme =>
+        [theme, {...effectiveFilters(theme).rating}]
+    ));
+    const assignments = assignThemesToMoves(order, themeQuota);
+    const approved = Array(order.length).fill(null);
+    const rejected = new Set();
+    let attempts = 0;
+    let reason = "";
+    const maxAttempts = Math.max(30, Math.min(100, puzzlesPerClick * 10));
 
-    if (selectedDetails === null) {
-        // Sparse or overlapping puzzle pools may prevent the exact quotas.
-        // Keep the existing no-repeat fallback rather than opening duplicates.
-        selectedDetails = [];
-        const selectedThisClick = new Set();
-        const assignments = assignThemesToMoves(order, themeQuota);
-        for (let index = 0; index < order.length; index++) {
-            const moveCount = order[index];
-            const choice = selectNextPuzzle(moveCount, selectedThisClick, assignments[index])
-                || selectNextPuzzle(moveCount, selectedThisClick);
-            if (choice === null) break;
-            selectedDetails.push(choice);
+    try {
+        for (let slot = 0; slot < order.length;) {
+            if (controller.signal.aborted) {
+                reason = "Настройки изменены; подбор остановлен.";
+                break;
+            }
+            if (attempts >= maxAttempts) {
+                reason = "Достигнут предел проверок API за одно нажатие.";
+                break;
+            }
+            const planned = assignUniquePuzzleIds(order, assignments, rejected,
+                approved.map(entry => entry?.id || null), pools);
+            const candidate = planned && planned[slot]
+                ? { id: planned[slot], theme: assignments[slot] }
+                : fallbackCandidate(order[slot], assignments[slot], approved,
+                    rejected, pools, weights);
+            if (!candidate) {
+                reason = "Не осталось подходящих уникальных кандидатов.";
+                break;
+            }
+            const { id, theme } = candidate;
+            attempts++;
+            progress.textContent = "Подобрано " + slot + " из " + order.length
+                + ". Проверяется кандидат " + attempts + "…";
+            const check = await inspectCandidate(id, theme, ranges[theme], controller.signal);
+            if (check.status === "ok") {
+                assignments[slot] = theme;
+                approved[slot] = {
+                    id, theme, ratingRange: ranges[theme],
+                    validation: {
+                        status: check.status, message: check.message,
+                        ratingCheck: check.ratingCheck || null
+                    }
+                };
+                openApprovedTab(tabs[slot], id);
+                slot++;
+            } else if (check.stop) {
+                reason = check.message;
+                break;
+            } else {
+                // The same ID may fit another theme with different bounds.
+                rejected.add(theme + ":" + id);
+            }
         }
+    } finally {
+        activeSelectionController = null;
+        const selected = approved.filter(Boolean);
+        const previouslyUsed = new Set(used);
+        approved.forEach((entry, slot) => {
+            if (!entry || !previouslyUsed.has(entry.id)) return;
+            for (const id of pools[entry.theme]?.[order[slot]] || []) {
+                used.delete(id);
+            }
+        });
+        selected.forEach(entry => used.add(entry.id));
+        if (balanceSignature === originalSignature) {
+            approved.forEach((entry, slot) => {
+                if (entry) moveUsage[order[slot]]++;
+            });
+            localStorage.setItem(balanceStorageKey,
+                JSON.stringify({ signature: balanceSignature, counts: moveUsage }));
+        }
+        localStorage.setItem(storageKey, JSON.stringify([...used]));
+        localStorage.setItem(lastSelectionStorageKey, JSON.stringify(selected));
+        renderLastSelection(selected);
+        selected.forEach((entry, index) => {
+            const check = entry.validation;
+            showValidation(index, check.status, check.message, check.ratingCheck);
+        });
+        tabs.forEach((tab, index) => {
+            if (!approved[index]) {
+                try { tab?.close(); } catch (_error) { /* Already closed. */ }
+            }
+        });
+        const blocked = approved.filter((entry, index) => entry && !tabs[index]).length;
+        const rejectedCount = attempts - selected.length;
+        progress.textContent = "Проверено " + attempts + " кандидатов. "
+            + "Подобрано " + selected.length + " из " + puzzlesPerClick + ". "
+            + (rejectedCount ? "Отклонено: " + rejectedCount + ". " : "")
+            + (blocked ? "Заблокировано вкладок: " + blocked
+                + " (ссылки есть ниже). " : "")
+            + (reason || "");
+        button.disabled = selectedThemes.size === 0 || !activeMoveCounts.length
+            || !themes.some(theme => selectedThemes.has(theme)
+                && candidateIds(theme).length > 0);
+        selectionInProgress = false;
     }
-    const selectedIds = selectedDetails.map(item => item.id);
-    for (let index = 0; index < selectedDetails.length; index++) {
-        const id = selectedDetails[index].id;
-        // Retain the move count of every actually selected task.
-        const moveCount = order[index];
-        if (id) moveUsage[moveCount]++;
-    }
-
-    localStorage.setItem(storageKey, JSON.stringify([...used]));
-    localStorage.setItem(
-        balanceStorageKey,
-        JSON.stringify({ signature: balanceSignature, counts: moveUsage })
-    );
-
-    // Show the exact IDs before opening tabs; visible even if pop-ups are blocked.
-    localStorage.setItem(lastSelectionStorageKey, JSON.stringify(selectedDetails));
-    renderLastSelection(selectedDetails);
-
-    if (selectedIds.length < puzzlesPerClick) {
-        alert(
-            "Недостаточно уникальных задач для заданных квот "
-            + "по количеству ходов. Открыты доступные задачи."
-        );
-    }
-    // Open tabs synchronously: awaiting fetch here would trigger popup blockers.
-    for (const id of selectedIds) {
-        window.open("https://lichess.org/training/" + id, "_blank");
-    }
-    void validateSelectedPuzzles(selectedDetails);
 }
 </script>
 
