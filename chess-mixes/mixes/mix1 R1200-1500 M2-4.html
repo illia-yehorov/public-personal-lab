@@ -3,8 +3,9 @@
 
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>mix1 R1200-1500 M2-4</title>
-<script type="application/json" id="mix-metadata">{"number": 1, "name": "Основная солянка", "generated_at": "2026-11-20T14:45:51+00:00", "themes": [{"name": "Незащищённая фигура", "weight": 1}, {"name": "Вилка", "weight": 1.5}, {"name": "Связка", "weight": 1.5}, {"name": "Сквозной удар", "weight": 1.5}, {"name": "Уничтожение защитника", "weight": 2}, {"name": "Вскрытое нападение", "weight": 2}, {"name": "Пойманная фигура", "weight": 2}, {"name": "Мат по последней горизонтали", "weight": 1}, {"name": "Мат", "weight": 1}], "rating": {"min": 1200, "max": 1500}, "moves": {"min": 2, "max": 4}}</script>
+<script type="application/json" id="mix-metadata">{"number": 1, "name": "Основная солянка", "generated_at": "2026-11-20T14:58:52+00:00", "themes": [{"name": "Незащищённая фигура", "weight": 1}, {"name": "Вилка", "weight": 1.5}, {"name": "Связка", "weight": 1.5}, {"name": "Сквозной удар", "weight": 1.5}, {"name": "Уничтожение защитника", "weight": 2}, {"name": "Вскрытое нападение", "weight": 2}, {"name": "Пойманная фигура", "weight": 2}, {"name": "Мат по последней горизонтали", "weight": 1}, {"name": "Мат", "weight": 1}], "rating": {"min": 1200, "max": 1500}, "moves": {"min": 2, "max": 4}}</script>
 
 <style>
 body {
@@ -552,6 +553,224 @@ button:disabled {
     color: inherit;
 }
 
+
+/* Compact training view can also be enabled manually on a desktop. */
+.view-switch {
+    display: flex;
+    justify-content: flex-end;
+    max-width: 680px;
+    margin: -6px auto 12px;
+}
+
+.view-switch button {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    padding: 7px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.compact-empty { display: none; }
+
+body.compact-mode {
+    box-sizing: border-box;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 12px 14px 28px;
+    font-size: 17px;
+}
+
+.compact-mode .page-header {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+}
+
+.compact-mode .page-header h1 { font-size: 23px; }
+.compact-mode .mix-name { font-size: 16px; }
+
+.compact-mode .view-switch { margin: -3px 0 12px; }
+.compact-mode .view-switch button { font-size: 15px; padding: 9px 12px; }
+
+.compact-mode .puzzle-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.compact-mode .puzzle-actions button {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 11px;
+    padding: 14px 12px;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.compact-mode #single-puzzle-button {
+    color: #fff;
+    background: #2563eb;
+    border: 1px solid #1d4ed8;
+}
+.compact-mode #next-puzzles-button {
+    color: #334155;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+}
+
+.compact-mode #selection-progress { font-size: 15px; line-height: 1.4; }
+
+.compact-mode .last-selection {
+    padding: 12px;
+    margin: 12px 0 0;
+    font-size: 17px;
+    line-height: 1.45;
+}
+
+.compact-mode .selection-placeholder { font-size: 16px; }
+.compact-mode .last-selection-details summary {
+    font-size: 17px;
+    line-height: 1.4;
+    padding: 10px 0;
+}
+.compact-mode .last-selection-details > p { display: none; }
+.compact-mode .last-selection ol { display: block; }
+.compact-mode .last-selection li {
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    overflow-wrap: anywhere;
+}
+.compact-mode .last-selection li:last-child { border-bottom: none; }
+.compact-mode .selected-theme { font-size: 16px; }
+.compact-mode .check-status { font-size: 15px; line-height: 1.4; }
+.compact-mode .integrity-summary { font-size: 15px; }
+.compact-mode .batch-count { font-size: 16px; }
+.compact-mode .batch-count strong { font-size: 25px; }
+.compact-mode .batch-label { font-size: 14px; }
+.compact-mode .batch-theme { font-size: 15px; }
+
+.compact-mode .instructions,
+.compact-mode .filter-panel,
+.compact-mode .theme-controls,
+.compact-mode .theme-help,
+.compact-mode .settings > #filter-status,
+.compact-mode .moves-table,
+.compact-mode .parameters,
+.compact-mode .settings > .section-title:not(.themes-heading),
+.compact-mode .theme-filter-row {
+    display: none !important;
+}
+
+.compact-mode .settings {
+    margin-top: 16px;
+    line-height: 1.4;
+}
+
+.compact-mode .themes-heading {
+    margin: 0 0 10px;
+    text-align: left;
+    font-size: 19px;
+    color: #334155;
+}
+
+.compact-mode .compact-empty:not([hidden]) {
+    display: block;
+    text-align: left;
+    font-size: 16px;
+    color: #b91c1c;
+    margin: 8px 0;
+}
+
+.compact-mode .themes-scroll {
+    overflow: visible;
+}
+
+.compact-mode .themes-table,
+.compact-mode .themes-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
+    border-collapse: separate;
+    font-size: 16px;
+}
+
+.compact-mode .themes-table thead,
+.compact-mode .themes-table .theme-row.compact-inactive {
+    display: none;
+}
+
+.compact-mode .themes-table .theme-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "theme weight" "rating moves";
+    align-items: baseline;
+    column-gap: 10px;
+    row-gap: 5px;
+    padding: 11px 12px;
+    margin: 0 0 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.compact-mode .themes-table .theme-row td {
+    width: auto;
+    padding: 0;
+    border: none;
+    min-width: 0;
+    line-height: 1.35;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(1),
+.compact-mode .themes-table .theme-row td:nth-child(2),
+.compact-mode .themes-table .theme-row td:nth-child(7),
+.compact-mode .themes-table .theme-row td:nth-child(8) {
+    display: none;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(3) {
+    grid-area: theme;
+    font-weight: 700;
+    font-size: 17px;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(4) {
+    grid-area: weight;
+    font-size: 15px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(5) {
+    grid-area: rating;
+    font-size: 15px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(6) {
+    grid-area: moves;
+    font-size: 15px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(4)::before { content: "Вес "; color: #64748b; }
+.compact-mode .themes-table .theme-row td:nth-child(5)::before { content: "Рейтинг "; color: #64748b; }
+.compact-mode .themes-table .theme-row td:nth-child(6)::before { content: "Ходы "; color: #64748b; }
+
+.compact-mode .source-notice {
+    margin: 16px 0 0;
+    padding-top: 12px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
 </style>
 </head>
 
@@ -564,6 +783,11 @@ button:disabled {
         <p class="mix-name">Основная солянка</p>
     </div>
 </header>
+
+<div class="view-switch">
+    <button type="button" id="view-mode-button" onclick="toggleCompactMode()"
+            aria-pressed="false">📱 Режим телефона</button>
+</div>
 
 <div class="puzzle-actions">
     <button id="next-puzzles-button" onclick="nextPuzzles()">
@@ -634,9 +858,13 @@ button:disabled {
         </div>
     </details>
 
-    <div class="section-title">
+    <div class="section-title themes-heading">
         Темы:
     </div>
+    <p class="compact-empty" id="compact-empty" hidden>
+        Нет активных тем с подходящими задачами. Переключись в полный режим,
+        чтобы изменить настройки.
+    </p>
 
     <div class="theme-controls">
         <button type="button" onclick="selectAllThemes(true)">Выбрать всё</button>
@@ -721,6 +949,38 @@ const themeWeights = appData.themeWeights;
 const moveWeights = appData.moveWeights;
 const puzzlesPerClick = appData.puzzlesPerClick;
 const storageKey = appData.storageKey;
+const viewModeStorageKey = "chessMixes:viewMode";
+const compactByScreen = window.matchMedia
+    ? window.matchMedia("(max-width: 700px)").matches
+    : Number.isFinite(window.innerWidth) && window.innerWidth <= 700;
+let compactMode = compactByScreen;
+try {
+    const savedMode = localStorage.getItem(viewModeStorageKey);
+    if (savedMode === "compact" || savedMode === "full") {
+        compactMode = savedMode === "compact";
+    }
+} catch (_error) {
+    // Browser storage may be disabled; automatic screen detection still works.
+}
+
+function applyCompactMode() {
+    document.body.classList.toggle("compact-mode", compactMode);
+    const button = document.getElementById("view-mode-button");
+    button.textContent = compactMode ? "🖥 Полный режим" : "📱 Режим телефона";
+    button.setAttribute("aria-pressed", String(compactMode));
+}
+
+function toggleCompactMode() {
+    compactMode = !compactMode;
+    applyCompactMode();
+    try {
+        localStorage.setItem(viewModeStorageKey, compactMode ? "compact" : "full");
+    } catch (_error) {
+        // The switch still works for this page without persistent storage.
+    }
+}
+
+applyCompactMode();
 const validationData = appData.validationData;
 let validationStatuses = [];
 let validationStates = [];
@@ -884,6 +1144,9 @@ function refreshFilters() {
         const view = themeViews.get(theme.id);
         if (view) {
             const length = candidateIds(theme.id).length;
+            const active = selectedThemes.has(theme.id)
+                && filters.weight > 0 && length > 0;
+            view.row.className = active ? "theme-row" : "theme-row compact-inactive";
             view.rating.textContent = filters.rating.min <= filters.rating.max
                 ? filters.rating.min + "–" + filters.rating.max : "—";
             view.moves.textContent = filters.moves.length ? filters.moves.join(", ") : "—";
@@ -904,6 +1167,7 @@ function refreshFilters() {
             && weight > 0 ? weight : 0;
     });
     const shareTotal = shareWeights.reduce((sum, weight) => sum + weight, 0);
+    document.getElementById("compact-empty").hidden = shareTotal > 0;
     for (const [index, theme] of appData.themes.entries()) {
         const view = themeViews.get(theme.id);
         if (!view) continue;
@@ -1092,6 +1356,7 @@ function renderExtraFilters() {
     body.replaceChildren();
     for (const [index, theme] of appData.themes.entries()) {
         const row = rows[index];
+        row.className = "theme-row";
         const available = document.createElement("td");
         const actionCell = document.createElement("td");
         const action = document.createElement("button");
@@ -1124,7 +1389,7 @@ function renderExtraFilters() {
         content.append(label, controls, idsAction, ids);
         panelCell.appendChild(content);
         panel.appendChild(panelCell);
-        const view = {weight: row.children[3], rating: row.children[4],
+        const view = {row, weight: row.children[3], rating: row.children[4],
             moves: row.children[5], available, action, panel, toggle,
             controls, ids, needsRender: true};
         themeViews.set(theme.id, view);
