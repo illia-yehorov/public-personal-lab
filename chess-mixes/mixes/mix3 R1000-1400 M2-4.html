@@ -3,8 +3,9 @@
 
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>mix3 R1000-1400 M2-4</title>
-<script type="application/json" id="mix-metadata">{"number": 3, "name": "Освобождение линии или поля", "generated_at": "2026-11-19T20:31:33+00:00", "themes": [{"name": "Освобождение линии или поля", "weight": 75.0}, {"name": "Завлечение", "weight": 25.0}, {"name": "Отвлечение", "weight": 25.0}, {"name": "Перекрытие", "weight": 25.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
+<script type="application/json" id="mix-metadata">{"number": 3, "name": "Освобождение линии или поля", "generated_at": "2026-11-21T11:56:06+00:00", "themes": [{"name": "Освобождение линии или поля", "weight": 75.0}, {"name": "Завлечение", "weight": 25.0}, {"name": "Отвлечение", "weight": 25.0}, {"name": "Перекрытие", "weight": 25.0}], "rating": {"min": 1000, "max": 1400}, "moves": {"min": 2, "max": 4}}</script>
 
 <style>
 body {
@@ -124,6 +125,26 @@ button {
 button:disabled {
     cursor: not-allowed;
     opacity: 0.55;
+}
+
+.puzzle-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.puzzle-actions button {
+    padding: 12px 20px;
+    font-size: 20px;
+}
+
+@media (max-width: 600px) {
+    .puzzle-actions button {
+        padding: 10px 14px;
+        font-size: 16px;
+    }
 }
 
 .theme-controls {
@@ -256,6 +277,16 @@ button:disabled {
     display: none;
 }
 
+.last-selection [hidden] {
+    display: none;
+}
+
+.selection-placeholder {
+    margin: 2px 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
 .last-selection ol {
     display: flex;
     flex-wrap: wrap;
@@ -341,50 +372,6 @@ button:disabled {
     color: #334155;
     font-weight: bold;
     font-variant-numeric: tabular-nums;
-}
-
-.batch-rating {
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 5px;
-    border: 1px solid #e2e8f0;
-    border-left: 3px solid #94a3b8;
-    border-radius: 6px;
-    padding: 5px 8px;
-    background: #fff;
-    font-size: 12px;
-    color: #475569;
-}
-
-.batch-rating strong {
-    font-size: 15px;
-    font-variant-numeric: tabular-nums;
-}
-
-.batch-rating.inside { border-left-color: #16a34a; }
-.batch-rating.above { border-left-color: #d97706; }
-.batch-rating.below { border-left-color: #dc2626; }
-.batch-rating.inside strong { color: #15803d; }
-.batch-rating.above strong { color: #b45309; }
-.batch-rating.below strong { color: #b91c1c; }
-
-.batch-rating-offset {
-    font-size: 12px;
-    color: #64748b;
-    font-variant-numeric: tabular-nums;
-}
-
-.batch-rating-help {
-    margin-top: 5px;
-    color: #64748b;
-    font-size: 11px;
-    line-height: 1.4;
-}
-
-.batch-rating-placeholder {
-    font-size: 12px;
-    color: #64748b;
 }
 
 @media (max-width: 600px) {
@@ -566,6 +553,224 @@ button:disabled {
     color: inherit;
 }
 
+
+/* Compact training view can also be enabled manually on a desktop. */
+.view-switch {
+    display: flex;
+    justify-content: flex-end;
+    max-width: 680px;
+    margin: -6px auto 12px;
+}
+
+.view-switch button {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    padding: 7px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.compact-empty { display: none; }
+
+body.compact-mode {
+    box-sizing: border-box;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 12px 14px 28px;
+    font-size: 17px;
+}
+
+.compact-mode .page-header {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+}
+
+.compact-mode .page-header h1 { font-size: 23px; }
+.compact-mode .mix-name { font-size: 16px; }
+
+.compact-mode .view-switch { margin: -3px 0 12px; }
+.compact-mode .view-switch button { font-size: 15px; padding: 9px 12px; }
+
+.compact-mode .puzzle-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.compact-mode .puzzle-actions button {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 11px;
+    padding: 14px 12px;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.compact-mode #single-puzzle-button {
+    color: #fff;
+    background: #2563eb;
+    border: 1px solid #1d4ed8;
+}
+.compact-mode #next-puzzles-button {
+    color: #334155;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+}
+
+.compact-mode #selection-progress { font-size: 15px; line-height: 1.4; }
+
+.compact-mode .last-selection {
+    padding: 12px;
+    margin: 12px 0 0;
+    font-size: 17px;
+    line-height: 1.45;
+}
+
+.compact-mode .selection-placeholder { font-size: 16px; }
+.compact-mode .last-selection-details summary {
+    font-size: 17px;
+    line-height: 1.4;
+    padding: 10px 0;
+}
+.compact-mode .last-selection-details > p { display: none; }
+.compact-mode .last-selection ol { display: block; }
+.compact-mode .last-selection li {
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    overflow-wrap: anywhere;
+}
+.compact-mode .last-selection li:last-child { border-bottom: none; }
+.compact-mode .selected-theme { font-size: 16px; }
+.compact-mode .check-status { font-size: 15px; line-height: 1.4; }
+.compact-mode .integrity-summary { font-size: 15px; }
+.compact-mode .batch-count { font-size: 16px; }
+.compact-mode .batch-count strong { font-size: 25px; }
+.compact-mode .batch-label { font-size: 14px; }
+.compact-mode .batch-theme { font-size: 15px; }
+
+.compact-mode .instructions,
+.compact-mode .filter-panel,
+.compact-mode .theme-controls,
+.compact-mode .theme-help,
+.compact-mode .settings > #filter-status,
+.compact-mode .moves-table,
+.compact-mode .parameters,
+.compact-mode .settings > .section-title:not(.themes-heading),
+.compact-mode .theme-filter-row {
+    display: none !important;
+}
+
+.compact-mode .settings {
+    margin-top: 16px;
+    line-height: 1.4;
+}
+
+.compact-mode .themes-heading {
+    margin: 0 0 10px;
+    text-align: left;
+    font-size: 19px;
+    color: #334155;
+}
+
+.compact-mode .compact-empty:not([hidden]) {
+    display: block;
+    text-align: left;
+    font-size: 16px;
+    color: #b91c1c;
+    margin: 8px 0;
+}
+
+.compact-mode .themes-scroll {
+    overflow: visible;
+}
+
+.compact-mode .themes-table,
+.compact-mode .themes-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
+    border-collapse: separate;
+    font-size: 16px;
+}
+
+.compact-mode .themes-table thead,
+.compact-mode .themes-table .theme-row.compact-inactive {
+    display: none;
+}
+
+.compact-mode .themes-table .theme-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "theme weight" "rating moves";
+    align-items: baseline;
+    column-gap: 10px;
+    row-gap: 5px;
+    padding: 11px 12px;
+    margin: 0 0 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.compact-mode .themes-table .theme-row td {
+    width: auto;
+    padding: 0;
+    border: none;
+    min-width: 0;
+    line-height: 1.35;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(1),
+.compact-mode .themes-table .theme-row td:nth-child(2),
+.compact-mode .themes-table .theme-row td:nth-child(7),
+.compact-mode .themes-table .theme-row td:nth-child(8) {
+    display: none;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(3) {
+    grid-area: theme;
+    font-weight: 700;
+    font-size: 17px;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(4) {
+    grid-area: weight;
+    font-size: 15px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(5) {
+    grid-area: rating;
+    font-size: 15px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(6) {
+    grid-area: moves;
+    font-size: 15px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.compact-mode .themes-table .theme-row td:nth-child(4)::before { content: "Вес "; color: #64748b; }
+.compact-mode .themes-table .theme-row td:nth-child(5)::before { content: "Рейтинг "; color: #64748b; }
+.compact-mode .themes-table .theme-row td:nth-child(6)::before { content: "Ходы "; color: #64748b; }
+
+.compact-mode .source-notice {
+    margin: 16px 0 0;
+    padding-top: 12px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
 </style>
 </head>
 
@@ -579,32 +784,50 @@ button:disabled {
     </div>
 </header>
 
-<button id="next-puzzles-button" onclick="nextPuzzles()">
-    🎲 Следующие 10 задач
-</button>
+<div class="view-switch">
+    <button type="button" id="view-mode-button" onclick="toggleCompactMode()"
+            aria-pressed="false">📱 Режим телефона</button>
+</div>
 
-<section class="last-selection" id="last-selection" hidden>
-    <div class="last-selection-overview" role="status" aria-live="polite">
+<div class="puzzle-actions">
+    <button id="next-puzzles-button" onclick="nextPuzzles()">
+        🎲 Следующие 10 задач
+    </button>
+    <button id="single-puzzle-button" onclick="nextPuzzles(1)">
+        ♟ Очередная задача
+    </button>
+</div>
+
+<p id="selection-progress" class="filter-status" role="status" aria-live="polite" hidden></p>
+
+<section class="last-selection" id="last-selection">
+    <p class="selection-placeholder" id="selection-placeholder">
+        Здесь появится информация о выбранных задачах после нажатия
+        «Очередная задача» или «Следующие 10 задач».
+    </p>
+    <div class="last-selection-overview" id="last-selection-overview"
+         role="status" aria-live="polite" hidden>
         <div class="batch-counts">
-            <span class="batch-count"><strong id="batch-task-count">0</strong> задач</span>
-            <span class="batch-count"><strong id="batch-theme-count">0</strong> тем</span>
+            <span class="batch-count">
+                <strong id="batch-task-count">0</strong>
+                <span id="batch-task-label">задач</span>
+            </span>
+            <span class="batch-count" id="batch-theme-counter">
+                <strong id="batch-theme-count">0</strong> тем
+            </span>
         </div>
-        <div class="batch-group">
+        <div class="batch-group" id="batch-theme-group">
             <div class="batch-label">Распределение по темам</div>
             <div class="batch-theme-list" id="last-selection-theme-summary"></div>
         </div>
-        <div class="batch-group">
-            <div class="batch-label">Актуальный рейтинг Lichess</div>
-            <div class="batch-rating-list" id="last-selection-rating-summary"></div>
-            <div class="batch-rating-help">Отклонения — от границ диапазона выбранной темы</div>
-        </div>
     </div>
-    <details class="last-selection-details" id="last-selection-details">
-        <summary>Последние выбранные задачи (по порядку вкладок)</summary>
+    <details class="last-selection-details" id="last-selection-details" hidden>
+        <summary id="last-selection-details-label">Последние выбранные задачи (по порядку вкладок)</summary>
         <ol id="last-selection-list"></ol>
-        <p>После открытия вкладок страница проверит выбранные задачи через API Lichess.
-        Проверка не блокирует вкладки и не гарантирует, что Lichess не изменит
-        задачу позднее.</p>
+        <p>Перед открытием каждой задачи проверяются актуальный рейтинг и соответствие
+        исходной базе через API Lichess. Неподходящие задачи заменяются. Если API
+        недоступен, непроверенные задачи не открываются. После проверки Lichess
+        может изменить задачу снова.</p>
         <div class="integrity-summary" id="integrity-summary" role="status" aria-live="polite"></div>
     </details>
 </section>
@@ -635,9 +858,13 @@ button:disabled {
         </div>
     </details>
 
-    <div class="section-title">
+    <div class="section-title themes-heading">
         Темы:
     </div>
+    <p class="compact-empty" id="compact-empty" hidden>
+        Нет активных тем с подходящими задачами. Переключись в полный режим,
+        чтобы изменить настройки.
+    </p>
 
     <div class="theme-controls">
         <button type="button" onclick="selectAllThemes(true)">Выбрать всё</button>
@@ -722,14 +949,45 @@ const themeWeights = appData.themeWeights;
 const moveWeights = appData.moveWeights;
 const puzzlesPerClick = appData.puzzlesPerClick;
 const storageKey = appData.storageKey;
-const lastSelectionStorageKey = storageKey + ":lastSelection:" + document.title;
+const viewModeStorageKey = "chessMixes:viewMode";
+const compactByScreen = window.matchMedia
+    ? window.matchMedia("(max-width: 700px)").matches
+    : Number.isFinite(window.innerWidth) && window.innerWidth <= 700;
+let compactMode = compactByScreen;
+try {
+    const savedMode = localStorage.getItem(viewModeStorageKey);
+    if (savedMode === "compact" || savedMode === "full") {
+        compactMode = savedMode === "compact";
+    }
+} catch (_error) {
+    // Browser storage may be disabled; automatic screen detection still works.
+}
+
+function applyCompactMode() {
+    document.body.classList.toggle("compact-mode", compactMode);
+    const button = document.getElementById("view-mode-button");
+    button.textContent = compactMode ? "🖥 Полный режим" : "📱 Режим телефона";
+    button.setAttribute("aria-pressed", String(compactMode));
+}
+
+function toggleCompactMode() {
+    compactMode = !compactMode;
+    applyCompactMode();
+    try {
+        localStorage.setItem(viewModeStorageKey, compactMode ? "compact" : "full");
+    } catch (_error) {
+        // The switch still works for this page without persistent storage.
+    }
+}
+
+applyCompactMode();
 const validationData = appData.validationData;
 let validationStatuses = [];
 let validationStates = [];
 let lastSelectedEntries = [];
-let validationGeneration = 0;
-let validationController = null;
 let rateLimitedUntil = 0;
+let selectionInProgress = false;
+let activeSelectionController = null;
 
 const themes = Object.keys(themeWeights).filter(
     theme => (themeWeights[theme] || 0) > 0
@@ -855,7 +1113,18 @@ function effectiveFilters(themeId) {
 function candidateIds(themeId) {
     return allMoves.flatMap(count => filteredPools[themeId]?.[count] || []);
 }
+function refreshActionButtons(disabled = null) {
+    const noCandidates = disabled ?? (selectedThemes.size === 0
+        || !themes.some(theme => selectedThemes.has(theme)
+            && candidateIds(theme).length > 0));
+    for (const id of ["next-puzzles-button", "single-puzzle-button"]) {
+        document.getElementById(id).disabled = selectionInProgress || noCandidates;
+    }
+}
+
 function refreshFilters() {
+    // A changed training filter must not approve a candidate against stale limits.
+    activeSelectionController?.abort();
     const unique = new Set();
     filteredPools = {};
     for (const theme of appData.themes) {
@@ -875,6 +1144,9 @@ function refreshFilters() {
         const view = themeViews.get(theme.id);
         if (view) {
             const length = candidateIds(theme.id).length;
+            const active = selectedThemes.has(theme.id)
+                && filters.weight > 0 && length > 0;
+            view.row.className = active ? "theme-row" : "theme-row compact-inactive";
             view.rating.textContent = filters.rating.min <= filters.rating.max
                 ? filters.rating.min + "–" + filters.rating.max : "—";
             view.moves.textContent = filters.moves.length ? filters.moves.join(", ") : "—";
@@ -895,6 +1167,7 @@ function refreshFilters() {
             && weight > 0 ? weight : 0;
     });
     const shareTotal = shareWeights.reduce((sum, weight) => sum + weight, 0);
+    document.getElementById("compact-empty").hidden = shareTotal > 0;
     for (const [index, theme] of appData.themes.entries()) {
         const view = themeViews.get(theme.id);
         if (!view) continue;
@@ -907,7 +1180,7 @@ function refreshFilters() {
     const empty = !noThemes && unique.size === 0;
     document.getElementById("theme-selection-count").textContent =
         "Выбрано тем: " + selectedThemes.size + " из " + themes.length;
-    document.getElementById("next-puzzles-button").disabled = noThemes || empty;
+    refreshActionButtons(noThemes || empty);
     const help = document.getElementById("theme-help");
     help.hidden = !noThemes && !empty;
     help.textContent = noThemes ? "Выбери хотя бы одну тему, чтобы открыть задачи."
@@ -916,7 +1189,10 @@ function refreshFilters() {
     document.getElementById("filter-status").textContent =
         "Доступно " + unique.size + " уникальных задач из выбранных тем.";
     storeFilters();
-    if (filterBalanceReady) resetMoveBalance();
+    if (filterBalanceReady) {
+        resetMoveBalance();
+        resetThemeBalance();
+    }
 }
 function resetTrainingFilters() {
     globalFilters = defaultFilters();
@@ -1080,6 +1356,7 @@ function renderExtraFilters() {
     body.replaceChildren();
     for (const [index, theme] of appData.themes.entries()) {
         const row = rows[index];
+        row.className = "theme-row";
         const available = document.createElement("td");
         const actionCell = document.createElement("td");
         const action = document.createElement("button");
@@ -1112,7 +1389,7 @@ function renderExtraFilters() {
         content.append(label, controls, idsAction, ids);
         panelCell.appendChild(content);
         panel.appendChild(panelCell);
-        const view = {weight: row.children[3], rating: row.children[4],
+        const view = {row, weight: row.children[3], rating: row.children[4],
             moves: row.children[5], available, action, panel, toggle,
             controls, ids, needsRender: true};
         themeViews.set(theme.id, view);
@@ -1306,7 +1583,16 @@ function renderLastSelection(ids) {
         item.append((index + 1) + ". ", link, themeLabel, status);
         list.appendChild(item);
     });
-    section.hidden = ids.length === 0;
+    section.hidden = false;
+    const empty = ids.length === 0;
+    document.getElementById("selection-placeholder").hidden = !empty;
+    document.getElementById("last-selection-overview").hidden = empty;
+    document.getElementById("last-selection-details").hidden = empty;
+    document.getElementById("last-selection-details-label").textContent = ids.length === 1
+        ? "Последняя задача — тема и рейтинг (открой после решения)"
+        : "Последние выбранные задачи (по порядку вкладок)";
+    document.getElementById("batch-theme-group").hidden = ids.length === 1;
+    document.getElementById("batch-theme-counter").hidden = ids.length === 1;
     updateBatchOverview();
     updateValidationSummary();
 }
@@ -1314,10 +1600,13 @@ function renderLastSelection(ids) {
 // Aggregate by theme, not tab order, so the overview cannot reveal solutions.
 function updateBatchOverview() {
     const themeSummary = document.getElementById("last-selection-theme-summary");
-    const ratingSummary = document.getElementById("last-selection-rating-summary");
     themeSummary.replaceChildren();
-    ratingSummary.replaceChildren();
-    document.getElementById("batch-task-count").textContent = lastSelectedEntries.length;
+    const taskCount = lastSelectedEntries.length;
+    document.getElementById("batch-task-count").textContent = taskCount;
+    document.getElementById("batch-task-label").textContent =
+        taskCount % 10 === 1 && taskCount % 100 !== 11 ? "задача"
+        : [2, 3, 4].includes(taskCount % 10) && ![12, 13, 14].includes(taskCount % 100)
+            ? "задачи" : "задач";
 
     const counts = new Map();
     let missingThemes = 0;
@@ -1352,55 +1641,6 @@ function updateBatchOverview() {
         appendTheme(themeById.get(id)?.name || id, counts.get(id));
     }
     if (missingThemes) appendTheme("Тема не сохранена", missingThemes);
-
-    if (lastSelectedEntries.length === 0) return;
-    if (validationStates.length === 0) {
-        const placeholder = document.createElement("span");
-        placeholder.className = "batch-rating-placeholder";
-        placeholder.textContent = "Проверка по API ещё не выполнена";
-        ratingSummary.appendChild(placeholder);
-        return;
-    }
-
-    const groups = { inside: [], above: [], below: [] };
-    let pending = 0;
-    let unavailable = 0;
-    for (let i = 0; i < lastSelectedEntries.length; i++) {
-        const state = validationStates[i];
-        const check = state?.ratingCheck;
-        if (check && Object.hasOwn(groups, check.relation)) {
-            groups[check.relation].push(check.deviation);
-        } else if (!state || state.status === "checking") {
-            pending++;
-        } else {
-            unavailable++;
-        }
-    }
-
-    function appendRating(label, count, kind, offsets = []) {
-        const badge = document.createElement("span");
-        badge.className = "batch-rating " + kind;
-        const text = document.createElement("span");
-        text.textContent = label;
-        const number = document.createElement("strong");
-        number.textContent = count;
-        badge.append(text, number);
-        if (offsets.length) {
-            const deviation = document.createElement("span");
-            deviation.className = "batch-rating-offset";
-            // Do not reveal tab order in the overview.
-            deviation.textContent = "(" + [...offsets].sort((a, b) => a - b)
-                .map(value => (value > 0 ? "+" : "") + value).join(", ") + ")";
-            badge.appendChild(deviation);
-        }
-        ratingSummary.appendChild(badge);
-    }
-
-    appendRating("В диапазоне", groups.inside.length, "inside");
-    appendRating("Выше", groups.above.length, "above", groups.above);
-    appendRating("Ниже", groups.below.length, "below", groups.below);
-    if (pending) appendRating("Проверяется", pending, "pending");
-    if (unavailable) appendRating("Нет данных", unavailable, "unknown");
 }
 
 function updateValidationSummary() {
@@ -1428,7 +1668,6 @@ function showValidation(index, status, message, ratingCheck = null) {
     element.textContent = symbol + " " + message;
     validationStates[index] = { status, message, ratingCheck };
     updateValidationSummary();
-    updateBatchOverview();
 }
 
 // The Lichess API intentionally omits the generic "mate" tag, but keeps
@@ -1492,73 +1731,45 @@ function comparePuzzle(id, expectedTheme, response, selectedRatingRange = null) 
     return { status: "ok", message: "Совпадает с базой; " + ratingText, ratingCheck };
 }
 
-async function validateSelectedPuzzles(selected) {
-    if (!validationData || Object.keys(validationData).length === 0
-        || selected.length === 0) return;
-    const generation = ++validationGeneration;
-    validationController?.abort();
-    validationController = new AbortController();
-    selected.forEach((_, index) => showValidation(index, "checking", "Ожидает проверки"));
-
+// Verify before opening a puzzle. An API error must never approve a task.
+async function inspectCandidate(id, theme, ratingRange, signal) {
+    if (signal?.aborted) {
+        return { status: "unknown", message: "Настройки изменены; подбор остановлен", stop: true };
+    }
     if (Date.now() < rateLimitedUntil) {
-        selected.forEach((_, index) => showValidation(
-            index, "unknown", "Лимит API: повтори попытку через минуту"
-        ));
-        return;
+        return { status: "unknown", message: "Лимит Lichess: повтори позже", stop: true };
     }
-    // Lichess requests one API call at a time. Stop a batch on HTTP 429.
-    for (let index = 0; index < selected.length; index++) {
-        if (generation !== validationGeneration) return;
-        const { id, theme } = selected[index];
-        showValidation(index, "checking", "Проверяется по API Lichess");
-        try {
-            const result = await fetch(
-                "https://lichess.org/api/puzzle/" + encodeURIComponent(id),
-                { signal: validationController.signal, credentials: "omit", cache: "no-store" }
-            );
-            if (generation !== validationGeneration) return;
-            if (result.status === 429) {
-                rateLimitedUntil = Date.now() + 60000;
-                for (let rest = index; rest < selected.length; rest++) {
-                    showValidation(rest, "unknown", "Лимит Lichess (HTTP 429); проверка остановлена");
-                }
-                return;
-            }
-            if (result.status === 404) {
-                showValidation(index, "invalid", "Задача недоступна (HTTP 404)");
-                continue;
-            }
-            if (!result.ok) {
-                showValidation(index, "unknown", "Ошибка API (HTTP " + result.status + ")");
-                continue;
-            }
-            const data = await result.json();
-            if (generation !== validationGeneration) return;
-            const check = comparePuzzle(id, theme, data, selected[index].ratingRange);
-            showValidation(index, check.status, check.message, check.ratingCheck);
-        } catch (_error) {
-            if (generation !== validationGeneration) return;
-            showValidation(index, "unknown", "Нет ответа API (сеть или CORS)");
+    try {
+        const result = await fetch(
+            "https://lichess.org/api/puzzle/" + encodeURIComponent(id),
+            { signal, credentials: "omit", cache: "no-store" }
+        );
+        if (signal?.aborted) {
+            return { status: "unknown", message: "Настройки изменены; подбор остановлен", stop: true };
         }
+        if (result.status === 429) {
+            rateLimitedUntil = Date.now() + 60000;
+            return { status: "unknown", message: "Лимит Lichess (HTTP 429); подбор остановлен", stop: true };
+        }
+        if (result.status === 404) {
+            return { status: "invalid", message: "Задача недоступна (HTTP 404)" };
+        }
+        if (!result.ok) {
+            return { status: "unknown", message: "Ошибка API (HTTP " + result.status + "); подбор остановлен", stop: true };
+        }
+        const data = await result.json();
+        if (signal?.aborted) {
+            return { status: "unknown", message: "Настройки изменены; подбор остановлен", stop: true };
+        }
+        return comparePuzzle(id, theme, data, ratingRange);
+    } catch (_error) {
+        return { status: "unknown", message: signal?.aborted
+            ? "Настройки изменены; подбор остановлен"
+            : "Нет ответа API (сеть или CORS); подбор остановлен", stop: true };
     }
 }
 
-let lastSelection = [];
-try {
-    const saved = JSON.parse(localStorage.getItem(lastSelectionStorageKey) || "[]");
-    if (Array.isArray(saved) && saved.every(entry =>
-        typeof entry === "string" || (
-            entry !== null && typeof entry === "object"
-            && typeof entry.id === "string"
-            && typeof entry.theme === "string"
-        )
-    )) {
-        lastSelection = saved;
-    }
-} catch (_error) {
-    // A broken saved selection must not affect puzzle generation.
-}
-renderLastSelection(lastSelection);
+renderLastSelection([]);
 
 function randomItem(array) {
     return array[
@@ -1571,6 +1782,9 @@ function randomItem(array) {
 
 // Recalculate quotas for the chosen themes; keep used puzzle IDs untouched.
 const balanceStorageKey = storageKey + ":moveBalance";
+const themeBalanceStorageKey = storageKey + ":themeBalance";
+let themeUsage = {};
+let themeBalanceSignature = "";
 let activeMoveCounts = [];
 let balanceSignature = "";
 let moveUsage = {};
@@ -1602,8 +1816,27 @@ function resetMoveBalance() {
         moveUsage = { ...savedBalance.counts };
     }
 }
+function resetThemeBalance() {
+    const active = themes.filter(theme => selectedThemes.has(theme)
+        && candidateIds(theme).length > 0 && effectiveFilters(theme).weight > 0);
+    themeBalanceSignature = JSON.stringify(
+        active.map(theme => [theme, effectiveFilters(theme).weight])
+    );
+    themeUsage = Object.fromEntries(active.map(theme => [theme, 0]));
+    try {
+        const saved = JSON.parse(localStorage.getItem(themeBalanceStorageKey) || "null");
+        if (saved?.signature === themeBalanceSignature
+            && active.every(theme => Number.isSafeInteger(saved.counts?.[theme])
+                && saved.counts[theme] >= 0)) {
+            themeUsage = { ...saved.counts };
+        }
+    } catch (_error) {
+        // Invalid balance data cannot affect the puzzle history.
+    }
+}
 filterBalanceReady = true;
 resetMoveBalance();
+resetThemeBalance();
 
 // Give each slot to the move count furthest behind its ideal cumulative
 // weighted share. Break ties randomly; quotas remain integer and balanced.
@@ -1676,6 +1909,23 @@ function buildThemeQuota(batchSize) {
         (sum, theme) => sum + effectiveFilters(theme).weight, 0
     );
     if (!totalWeight) return quota;
+    // Across one-puzzle clicks, keep the cumulative theme proportions balanced.
+    // A 10% theme gets one task over ten consecutive single requests.
+    if (batchSize === 1) {
+        const nextTotal = active.reduce(
+            (sum, theme) => sum + (themeUsage[theme] || 0), 0
+        ) + 1;
+        const deficits = active.map(theme => ({
+            theme, value: nextTotal * effectiveFilters(theme).weight / totalWeight
+                - (themeUsage[theme] || 0)
+        }));
+        const maxDeficit = Math.max(...deficits.map(entry => entry.value));
+        const mostBehind = deficits.filter(entry =>
+            Math.abs(entry.value - maxDeficit) < 1e-9
+        );
+        quota[randomItem(mostBehind).theme] = 1;
+        return quota;
+    }
     let carry = Math.random();
     for (const theme of active) {
         let expected = batchSize * effectiveFilters(theme).weight / totalWeight;
@@ -1754,24 +2004,36 @@ function assignThemesToMoves(order, themeQuota) {
 
 // Match concrete puzzle IDs to all planned slots so overlapping themes do
 // not cause duplicate puzzles. Prefer IDs not used in previous batches.
-function assignUniquePuzzleIds(order, assignments) {
+// Reserve approved IDs and avoid rejected theme/ID pairs. Replan remaining
+// slots together so overlapping pools stay unique and quotas remain fixed.
+function assignUniquePuzzleIds(order, assignments, rejected = new Set(),
+    approved = [], pools = filteredPools) {
     const ids = Array(order.length).fill(null);
     const ownerById = new Map();
+    approved.forEach((id, index) => {
+        if (id) {
+            ids[index] = id;
+            ownerById.set(id, index);
+        }
+    });
     const sortedSlots = order.map((moveCount, index) => ({
-        index, size: (filteredPools[assignments[index]]?.[moveCount] || []).length
-    })).sort((a, b) => a.size - b.size);
+        index, size: (pools[assignments[index]]?.[moveCount] || []).length
+    })).filter(item => !approved[item.index]).sort((a, b) => a.size - b.size);
 
     function match(slot, seen) {
-        const pool = filteredPools[assignments[slot]]?.[order[slot]] || [];
+        const theme = assignments[slot];
+        const pool = pools[theme]?.[order[slot]] || [];
         if (!pool.length) return false;
         const start = Math.floor(Math.random() * pool.length);
         for (let pass = 0; pass < 2; pass++) {
             for (let offset = 0; offset < pool.length; offset++) {
                 const id = pool[(start + offset) % pool.length];
-                if (seen.has(id) || Number(used.has(id)) !== pass) continue;
+                if (rejected.has(theme + ":" + id)
+                    || seen.has(id) || Number(used.has(id)) !== pass) continue;
                 seen.add(id);
                 const previousSlot = ownerById.get(id);
-                if (previousSlot === undefined || match(previousSlot, seen)) {
+                if (previousSlot === undefined
+                    || (!approved[previousSlot] && match(previousSlot, seen))) {
                     ownerById.set(id, slot);
                     ids[slot] = id;
                     return true;
@@ -1785,26 +2047,6 @@ function assignUniquePuzzleIds(order, assignments) {
         if (!match(index, new Set())) return null;
     }
     return ids;
-}
-
-function selectPlannedPuzzles(order, themeQuota) {
-    const assignments = assignThemesToMoves(order, themeQuota);
-    const ids = assignUniquePuzzleIds(order, assignments);
-    if (!ids) return null;
-
-    // Only restart a theme/move pool whose reused IDs were needed.
-    const previouslyUsed = new Set(used);
-    for (let index = 0; index < ids.length; index++) {
-        if (!previouslyUsed.has(ids[index])) continue;
-        for (const id of filteredPools[assignments[index]]?.[order[index]] || []) {
-            used.delete(id);
-        }
-    }
-    ids.forEach(id => used.add(id));
-    return ids.map((id, index) => ({
-        id, theme: assignments[index],
-        ratingRange: {...effectiveFilters(assignments[index]).rating}
-    }));
 }
 
 function getAvailableBuckets(moveCount, selectedThisClick) {
@@ -1874,58 +2116,193 @@ function selectNextPuzzle(moveCount, selectedThisClick, preferredTheme = null) {
         ratingRange: {...effectiveFilters(bucket.theme).rating} };
 }
 
-function nextPuzzles() {
-    if (selectedThemes.size === 0 || activeMoveCounts.length === 0) {
-        return;
-    }
-    const quota = buildMoveQuota(puzzlesPerClick, moveUsage);
-    const order = shuffleMoveQuota(quota);
-    const themeQuota = buildThemeQuota(puzzlesPerClick);
-    let selectedDetails = selectPlannedPuzzles(order, themeQuota);
-
-    if (selectedDetails === null) {
-        // Sparse or overlapping puzzle pools may prevent the exact quotas.
-        // Keep the existing no-repeat fallback rather than opening duplicates.
-        selectedDetails = [];
-        const selectedThisClick = new Set();
-        const assignments = assignThemesToMoves(order, themeQuota);
-        for (let index = 0; index < order.length; index++) {
-            const moveCount = order[index];
-            const choice = selectNextPuzzle(moveCount, selectedThisClick, assignments[index])
-                || selectNextPuzzle(moveCount, selectedThisClick);
-            if (choice === null) break;
-            selectedDetails.push(choice);
-        }
-    }
-    const selectedIds = selectedDetails.map(item => item.id);
-    for (let index = 0; index < selectedDetails.length; index++) {
-        const id = selectedDetails[index].id;
-        // Retain the move count of every actually selected task.
-        const moveCount = order[index];
-        if (id) moveUsage[moveCount]++;
-    }
-
-    localStorage.setItem(storageKey, JSON.stringify([...used]));
-    localStorage.setItem(
-        balanceStorageKey,
-        JSON.stringify({ signature: balanceSignature, counts: moveUsage })
-    );
-
-    // Show the exact IDs before opening tabs; visible even if pop-ups are blocked.
-    localStorage.setItem(lastSelectionStorageKey, JSON.stringify(selectedDetails));
-    renderLastSelection(selectedDetails);
-
-    if (selectedIds.length < puzzlesPerClick) {
-        alert(
-            "Недостаточно уникальных задач для заданных квот "
-            + "по количеству ходов. Открыты доступные задачи."
+// Used only when there are too few distinct IDs for the global matching plan.
+// Prefer the planned theme and unused IDs, keeping the original move length.
+function fallbackCandidate(moveCount, preferredTheme, approved, rejected, pools, weights) {
+    const acceptedIds = new Set(approved.filter(Boolean).map(entry => entry.id));
+    function choices(theme) {
+        return (pools[theme]?.[moveCount] || []).filter(id =>
+            !acceptedIds.has(id) && !rejected.has(theme + ":" + id)
         );
     }
-    // Open tabs synchronously: awaiting fetch here would trigger popup blockers.
-    for (const id of selectedIds) {
-        window.open("https://lichess.org/training/" + id, "_blank");
+    const preferred = preferredTheme && choices(preferredTheme).length
+        ? [preferredTheme]
+        : Object.keys(weights).filter(theme => weights[theme] > 0
+            && choices(theme).length);
+    if (!preferred.length) return null;
+    let buckets = preferred.map(theme => ({
+        theme, weight: weights[theme], available: choices(theme)
+    }));
+    const unused = buckets.map(bucket => ({
+        ...bucket, available: bucket.available.filter(id => !used.has(id))
+    })).filter(bucket => bucket.available.length);
+    if (unused.length) buckets = unused;
+    const bucket = weightedRandomBucket(buckets);
+    return { id: randomItem(bucket.available), theme: bucket.theme };
+}
+
+function reservePuzzleTabs(count) {
+    // Browsers allow tabs opened in this synchronous click handler,
+    // but usually block new windows opened after a network request.
+    return Array.from({ length: count }, () => {
+        const tab = window.open("about:blank", "_blank");
+        if (tab) {
+            try {
+                tab.document.title = "Chess Mixes — проверка задач";
+                tab.document.body.textContent = "Проверка рейтинга через Lichess API…";
+                tab.opener = null;
+            } catch (_error) {
+                // A blocked or closed tab still has a link in the summary.
+            }
+        }
+        return tab;
+    });
+}
+
+function openApprovedTab(tab, id) {
+    if (!tab || tab.closed) return;
+    try {
+        tab.location.replace("https://lichess.org/training/" + encodeURIComponent(id));
+    } catch (_error) {
+        // The verified ID remains available as a link in the summary.
     }
-    void validateSelectedPuzzles(selectedDetails);
+}
+
+// Preflight every candidate and retry rejected ones without spending theme
+// or move quotas. Never mark an unverified or rejected ID as used.
+async function nextPuzzles(batchSize = puzzlesPerClick) {
+    if (selectionInProgress || selectedThemes.size === 0 || activeMoveCounts.length === 0) {
+        return;
+    }
+    const progress = document.getElementById("selection-progress");
+    if (Date.now() < rateLimitedUntil) {
+        progress.hidden = false;
+        progress.textContent = "Лимит Lichess API: повтори подбор через минуту.";
+        return;
+    }
+
+    selectionInProgress = true;
+    const buttons = [
+        document.getElementById("next-puzzles-button"),
+        document.getElementById("single-puzzle-button")
+    ];
+    buttons.forEach(button => { button.disabled = true; });
+    progress.hidden = false;
+    progress.textContent = "Резервируем вкладки и проверяем рейтинг задач…";
+    const tabs = reservePuzzleTabs(batchSize);
+    const controller = new AbortController();
+    activeSelectionController = controller;
+    const pools = filteredPools;
+    const originalSignature = balanceSignature;
+    const originalThemeSignature = themeBalanceSignature;
+    const quota = buildMoveQuota(batchSize, moveUsage);
+    const order = shuffleMoveQuota(quota);
+    const themeQuota = buildThemeQuota(batchSize);
+    const weights = Object.fromEntries(Object.keys(themeQuota).map(theme =>
+        [theme, effectiveFilters(theme).weight]
+    ));
+    const ranges = Object.fromEntries(Object.keys(themeQuota).map(theme =>
+        [theme, {...effectiveFilters(theme).rating}]
+    ));
+    const assignments = assignThemesToMoves(order, themeQuota);
+    const approved = Array(order.length).fill(null);
+    const rejected = new Set();
+    let attempts = 0;
+    let reason = "";
+    const maxAttempts = Math.max(10, Math.min(100, batchSize * 10));
+
+    try {
+        for (let slot = 0; slot < order.length;) {
+            if (controller.signal.aborted) {
+                reason = "Настройки изменены; подбор остановлен.";
+                break;
+            }
+            if (attempts >= maxAttempts) {
+                reason = "Достигнут предел проверок API за одно нажатие.";
+                break;
+            }
+            const planned = assignUniquePuzzleIds(order, assignments, rejected,
+                approved.map(entry => entry?.id || null), pools);
+            const candidate = planned && planned[slot]
+                ? { id: planned[slot], theme: assignments[slot] }
+                : fallbackCandidate(order[slot], assignments[slot], approved,
+                    rejected, pools, weights);
+            if (!candidate) {
+                reason = "Не осталось подходящих уникальных кандидатов.";
+                break;
+            }
+            const { id, theme } = candidate;
+            attempts++;
+            progress.textContent = "Подобрано " + slot + " из " + order.length
+                + ". Проверяется кандидат " + attempts + "…";
+            const check = await inspectCandidate(id, theme, ranges[theme], controller.signal);
+            if (check.status === "ok") {
+                assignments[slot] = theme;
+                approved[slot] = {
+                    id, theme, ratingRange: ranges[theme],
+                    validation: {
+                        status: check.status, message: check.message,
+                        ratingCheck: check.ratingCheck || null
+                    }
+                };
+                openApprovedTab(tabs[slot], id);
+                slot++;
+            } else if (check.stop) {
+                reason = check.message;
+                break;
+            } else {
+                // The same ID may fit another theme with different bounds.
+                rejected.add(theme + ":" + id);
+            }
+        }
+    } finally {
+        activeSelectionController = null;
+        const selected = approved.filter(Boolean);
+        const previouslyUsed = new Set(used);
+        approved.forEach((entry, slot) => {
+            if (!entry || !previouslyUsed.has(entry.id)) return;
+            for (const id of pools[entry.theme]?.[order[slot]] || []) {
+                used.delete(id);
+            }
+        });
+        selected.forEach(entry => used.add(entry.id));
+        if (balanceSignature === originalSignature) {
+            approved.forEach((entry, slot) => {
+                if (entry) moveUsage[order[slot]]++;
+            });
+            localStorage.setItem(balanceStorageKey,
+                JSON.stringify({ signature: balanceSignature, counts: moveUsage }));
+        }
+        if (themeBalanceSignature === originalThemeSignature) {
+            selected.forEach(entry => {
+                if (Object.hasOwn(themeUsage, entry.theme)) themeUsage[entry.theme]++;
+            });
+            localStorage.setItem(themeBalanceStorageKey, JSON.stringify({
+                signature: themeBalanceSignature, counts: themeUsage
+            }));
+        }
+        localStorage.setItem(storageKey, JSON.stringify([...used]));
+        renderLastSelection(selected);
+        selected.forEach((entry, index) => {
+            const check = entry.validation;
+            showValidation(index, check.status, check.message, check.ratingCheck);
+        });
+        tabs.forEach((tab, index) => {
+            if (!approved[index]) {
+                try { tab?.close(); } catch (_error) { /* Already closed. */ }
+            }
+        });
+        const blocked = approved.filter((entry, index) => entry && !tabs[index]).length;
+        const rejectedCount = attempts - selected.length;
+        progress.textContent = "Проверено " + attempts + " кандидатов. "
+            + "Подобрано " + selected.length + " из " + batchSize + ". "
+            + (rejectedCount ? "Отклонено: " + rejectedCount + ". " : "")
+            + (blocked ? "Заблокировано вкладок: " + blocked
+                + " (ссылки есть ниже). " : "")
+            + (reason || "");
+        selectionInProgress = false;
+        refreshActionButtons();
+    }
 }
 </script>
 
