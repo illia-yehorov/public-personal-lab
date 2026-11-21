@@ -117,3 +117,6 @@ G115,2026-11-16,checkers,breakthrough,lekha,sdel,0,15,,false,1,sdel 0+15,,intern
 G116,2026-11-16,chess,standard,papa,,,,,false,1,Шх 5+5,,,,5+5
 G117,2026-11-19,checkers,breakthrough,lekha,bd,0,20,,false,1,bd 0+20,,international,,
 G118,2026-11-19,chess,standard,papa,,,,,false,1,Шх 5+5,,,,5+5
+G119,2026-11-20,chess,standard,lekha,,,,,true,1,Шх 5+5 п,,,,5+5
+G120,2026-11-20,chess,standard,papa,,,,,false,1,Шх 5+5,,,,5+5
+G121,2026-11-20,checkers,antidraughts,papa,bd,0,20,,true,1,ant bd 0+20 п,,international,,
